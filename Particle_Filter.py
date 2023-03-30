@@ -45,12 +45,32 @@ class ParticleFilterSE3:
     def resample(self):
         new_particles = []
         # Sample particles with replacement based on their weights
-        indices = np.random.choice(self.num_particles, size=self.num_particles, replace=True, p=self.weights)
-        for i in indices:
-            new_particles.append(self.particles[i])
-        self.particles = new_particles
-        self.weights = np.ones(self.num_particles) / self.num_particles
+        # indices = np.random.choice(self.num_particles, size=self.num_particles, replace=True, p=self.weights)
+        # for i in indices:
+        #     new_particles.append(self.particles[i])
+        # self.particles = new_particles
+        # self.weights = np.ones(self.num_particles) / self.num_particles
     
+        # low variance resampling algorithm
+        # // generate random number r between 0 and Minv
+        Minv = 1 / self.num_particles
+        r = np.random.normal(0, Minv)
+        c = self.weights[0]
+
+        i = 0
+        U = 0
+        
+        for m in range(self.num_particles):
+            U = r + m * Minv
+            
+            while (c < U):
+                i += 1
+                c += self.weights[i]
+
+            new_particles.append(self.particles[i])
+
+        self.particles = new_particles
+
     @staticmethod
     def rotation_matrix(rotation):
         roll, pitch, yaw = rotation
