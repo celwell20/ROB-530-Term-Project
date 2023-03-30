@@ -3,49 +3,49 @@ from scipy.stats import norm
 
 class SE3:
     def __init__(self, position=np.zeros(3), rotation=np.eye(3)):
-        
+        # Construct an SE(3) object based on a provided rotation matrix and position vector.
         self.position = position
         self.rotation = rotation
-        self.pose = [rotation, position.T
-                     [0, 0, 0, 1]        ]
 
+    def pose(self):
+        # Return the pose
+        pose = [[self.rotation, self.position.T],[0, 0, 0, 1]]
+        return pose
     
 class ParticleFilterSE3:
     def __init__(self, num_particles, initial_pose):
-
+        # Initialise the filter with a specified number of particles and their weights
         self.num_particles = num_particles
         self.particles = [SE3(position=initial_pose.position, rotation=initial_pose.rotation) for _ in range(num_particles)]
         self.weights = np.ones(num_particles) / num_particles
 
     def predict(self, control_input):
-
+        # Loop through all the particles and predict their location based on the control inputs
         for i in range(self.num_particles):
-
             particle = self.particles[i]
-            
-            # Update the particle pose using the control input
             particle.position += control_input[:3]
             particle.rotation = particle.rotation @ self.rotation_matrix(control_input[3:])
     
-    def update(self, measurement):
-
+    def update(self, measurement, covariance):
+        # Loop through all the particles and compute their weigths based on their vicinity to the measurment
         for i in range(self.num_particles):
-
             particle = self.particles[i]
-
-            # Calculate the error in se(3)
-            error = np.linalg.logm(np.dot(particle.pose,np.linalg.inv(measurement.pose)))
-            weight = norm.pdf(error, mean=0, cov=np.eye(6)*0.1) # NEED TO TUNE COVARIANCVE
-
+            error = np.linalg.logm(np.dot(particle.pose(),np.linalg.inv(measurement.pose())))
+            weight = norm.pdf(error, mean = 0, cov = covariance)
             self.weights[i] = weight
 
-        # Normalize the weights
+        # Normalize the weights and compute the effective sample size
         self.weights /= np.sum(self.weights)
+        n_eff = 1 / np.sum(self.weights**2)
+
+        return n_eff
     
     def resample(self):
+        # Initiate the resampled set
         new_particles = []
         new_weights = []
-
+        
+        """
         ## ChatGPT Resampling Algorithm:
         ## It seems like the algorithm should resample based on the weights,
         ## so if we can't implement a resampling algorithm of our own, then 
@@ -60,7 +60,9 @@ class ParticleFilterSE3:
 
         ## Written by a human:
         ## Low Variance Resampling Algorithm
-        # // generate random number r between 0 and Minv
+        """
+
+        # Generate a random number r between 0 and Minv
         Minv = 1 / self.num_particles
         r = np.random.normal(0, Minv)
         c = self.weights[0]
@@ -78,14 +80,13 @@ class ParticleFilterSE3:
             new_particles.append(self.particles[i])
             new_weights.append(self.weights[i])
 
-        # create more of the resampled particles to match self.num_particles
-
+        # Generate more of the resampled particles to match self.num_particles
         new_particles = np.random.choice(new_particles, self.num_particles, replace=True, p=self.weights)
-
         self.particles = new_particles
 
     @staticmethod
     def rotation_matrix(rotation):
+        # Compute the rotation 
         roll, pitch, yaw = rotation
         cy = np.cos(yaw)
         sy = np.sin(yaw)
