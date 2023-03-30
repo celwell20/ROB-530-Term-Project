@@ -44,14 +44,22 @@ class ParticleFilterSE3:
     
     def resample(self):
         new_particles = []
+        new_weights = []
+
+        ## ChatGPT Resampling Algorithm:
+        ## It seems like the algorithm should resample based on the weights,
+        ## so if we can't implement a resampling algorithm of our own, then 
+        ## this one should work
+
         # Sample particles with replacement based on their weights
         # indices = np.random.choice(self.num_particles, size=self.num_particles, replace=True, p=self.weights)
         # for i in indices:
         #     new_particles.append(self.particles[i])
         # self.particles = new_particles
         # self.weights = np.ones(self.num_particles) / self.num_particles
-    
-        # low variance resampling algorithm
+
+        ## Written by a human:
+        ## Low Variance Resampling Algorithm
         # // generate random number r between 0 and Minv
         Minv = 1 / self.num_particles
         r = np.random.normal(0, Minv)
@@ -68,6 +76,11 @@ class ParticleFilterSE3:
                 c += self.weights[i]
 
             new_particles.append(self.particles[i])
+            new_weights.append(self.weights[i])
+
+        # create more of the resampled particles to match self.num_particles
+
+        new_particles = np.random.choice(new_particles, self.num_particles, replace=True, p=self.weights)
 
         self.particles = new_particles
 
