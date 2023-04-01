@@ -13,7 +13,7 @@ class SE3:
         pose = [np.row_stack(np.column_stack(self.rotation, self.position.T),[0, 0, 0, 1])]
         return pose
     
-    def v(self):
+    def se3_to_twistcrd(self):
         # go from little se(3) to twist coordinates (6x1)
         # call the functionthat is elsewhere
         twist = self.pose()
