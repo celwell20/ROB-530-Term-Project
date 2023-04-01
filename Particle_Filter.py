@@ -45,8 +45,8 @@ class ParticleFilterSE3:
     
     def resample(self):
         # Initiate the resampled set
-        new_particles = []
-        new_weights = []
+        new_particles = np.zeros_like(self.particles)
+        new_weights = np.zeros_like(self.weights)
         
         ## ChatGPT Resampling Algorithm:
         ## It seems like the algorithm should resample based on the weights,
@@ -60,32 +60,6 @@ class ParticleFilterSE3:
         # self.particles = new_particles
         # self.weights = np.ones(self.num_particles) / self.num_particles
 
-        ## Written by a human:
-        ## Low Variance Resampling Algorithm
-        # // generate random number r between 0 and Minv
-        # Minv = 1 / self.num_particles
-        # r = np.random.normal(0, Minv)
-        # c = self.weights[0]
-
-        # i = 0
-        # U = 0
-        
-        # for m in range(self.num_particles):
-        #     U = r + m * Minv
-            
-        #     while (c < U):
-        #         i += 1
-        #         c += self.weights[i]
-
-        #     new_particles.append(self.particles[i])
-        #     new_weights.append(self.weights[i])
-
-        # # create more of the resampled particles to match self.num_particles
-
-        # new_particles = np.random.choice(new_particles, self.num_particles, replace=True, p=self.weights)
-
-        # self.particles = new_particles
-
         W = np.cumsum(self.weights)
         r = np.random.rand(1) / self.num_particles
         count = 0
@@ -93,9 +67,9 @@ class ParticleFilterSE3:
             u = r + j/self.n
             while u > W[count]:
                 count += 1
-            new_samples[:,j] = self.particles[:,count]
+            new_particles[:,j] = self.particles[:,count]
             new_weights[j] = 1 / self.num_particles
-        self.particles = new_samples
+        self.particles = new_particles
         self.weights = new_weights
 
     def mean_variance(self):
@@ -127,10 +101,7 @@ class ParticleFilterSE3:
         P = zero_mean @ zero_mean.T / self.num_particles
         
         return X, P
-        # self.state_.setTime(rospy.Time.now())
-        # self.state_.setState(X)
-        # self.state_.setCovariance(P)
-
+        
     @staticmethod
     def rotation_matrix(rotation):
         # Compute the rotation 
