@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.stats import norm
 
+
 class SE3:
     def __init__(self, position=np.zeros(3), rotation=np.eye(3)):
         # Construct an SE(3) object based on a provided rotation matrix and position vector.
@@ -73,32 +74,45 @@ class ParticleFilterSE3:
         self.weights = new_weights
 
     def mean_variance(self):
-        X = np.mean(self.particles, axis=1)
-        sinSum3 = 0
-        cosSum3 = 0
-        sinSum4 = 0
-        cosSum4 = 0
-        sinSum5 = 0
-        cosSum5 = 0
+        # X = np.mean(self.particles, axis=1)
+        # sinSum3 = 0
+        # cosSum3 = 0
+        # sinSum4 = 0
+        # cosSum4 = 0
+        # sinSum5 = 0
+        # cosSum5 = 0
         
-        for s in range(self.n):
-            cosSum3 += np.cos(self.particles[3,s])
-            sinSum3 += np.sin(self.particles[3,s])
-            cosSum4 += np.cos(self.particles[4,s])
-            sinSum4 += np.sin(self.particles[4,s])
-            cosSum5 += np.cos(self.particles[5,s])
-            sinSum5 += np.sin(self.particles[5,s])
-        X[3] = np.arctan2(sinSum3, cosSum3)
-        X[4] = np.arctan2(sinSum4, cosSum4)
-        X[5] = np.arctan2(sinSum5, cosSum5)
+        # for s in range(self.n):
+
+        #     se3_particle = np.linalg.logm(self.particles[i])
+        #     screw
+
+        #     cosSum3 += np.cos(self.particles[3,s])
+        #     sinSum3 += np.sin(self.particles[3,s])
+        #     cosSum4 += np.cos(self.particles[4,s])
+        #     sinSum4 += np.sin(self.particles[4,s])
+        #     cosSum5 += np.cos(self.particles[5,s])
+        #     sinSum5 += np.sin(self.particles[5,s])
+        # X[3] = np.arctan2(sinSum3, cosSum3)
+        # X[4] = np.arctan2(sinSum4, cosSum4)
+        # X[5] = np.arctan2(sinSum5, cosSum5)
         
-        zero_mean = np.zeros_like(self.particles)
-        for s in range(self.n):
-            zero_mean[:,s] = self.particles[:,s] - X
-            zero_mean[3,s] = np.unwrap(zero_mean[3,s])
-            zero_mean[4,s] = np.unwrap(zero_mean[4,s])
-            zero_mean[5,s] = np.unwrap(zero_mean[5,s])
-        P = zero_mean @ zero_mean.T / self.num_particles
+        # zero_mean = np.zeros_like(self.particles)
+        # for s in range(self.n):
+        #     zero_mean[:,s] = self.particles[:,s] - X
+        #     zero_mean[3,s] = np.unwrap(zero_mean[3,s])
+        #     zero_mean[4,s] = np.unwrap(zero_mean[4,s])
+        #     zero_mean[5,s] = np.unwrap(zero_mean[5,s])
+        # P = zero_mean @ zero_mean.T / self.num_particles
+
+        X = np.mean(self.particles, axis=0)
+
+        # compute the variance of the particles
+        P = np.zeros((6, 6))
+        for p in self.particles:
+            diff = p - X
+            P += np.square(diff).sum(axis=0)
+        P /= len(self.particles)
         
         return X, P
         
