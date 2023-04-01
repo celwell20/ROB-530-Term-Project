@@ -1,19 +1,32 @@
 import numpy as np
-from scipy.stats import norm
-
+import scipy
+from scipy.stats import multivariate_normal
 
 class SE3:
     def __init__(self, position=np.zeros(3), rotation=np.eye(3)):
         # Construct an SE(3) object based on a provided rotation matrix and position vector.
         self.position = position
         self.rotation = rotation
-        self.pose = [rotation, position.T
-                     [0, 0, 0, 1]        ]
 
     def pose(self):
         # Return the pose
-        pose = [[self.rotation, self.position.T],[0, 0, 0, 1]]
+        pose = [np.row_stack(np.column_stack(self.rotation, self.position.T),[0, 0, 0, 1])]
         return pose
+    
+    def v(self):
+        # go from little se(3) to twist coordinates (6x1)
+        # call the functionthat is elsewhere
+        twist = self.pose()
+        # Convert from a member of little se(3) to a
+        # 6x1 twist coordinate [v;w]
+        omega = np.array([[twist[2,1]],[twist[0,2]],[twist[1,0]]])
+        
+        vel = np.array([[twist[0,3]],[twist[1,3]],[twist[2,3]]])
+        
+        twistcrd = np.vstack((vel,omega))
+
+        return twistcrd
+
     
 class ParticleFilterSE3:
     def __init__(self, num_particles, initial_pose):
@@ -34,9 +47,11 @@ class ParticleFilterSE3:
         # Loop through all the particles and compute their weigths based on their vicinity to the measurment
         for i in range(self.num_particles):
             particle = self.particles[i]
-            error = np.linalg.logm(np.dot(particle.pose(),np.linalg.inv(measurement.pose())))
-            weight = norm.pdf(error, mean = 0, cov = covariance)
-            self.weights[i] = weight
+            # log map of dot product between particle's pose and the inverse of the measurement pose from CNN
+
+            # write method to convert from 
+            error = self.se3_to_twistcrd(scipy.linalg.logm(np.dot(np.linalg.inv(particle.pose()),measurement.pose())))
+            self.weights[i] *= multivariate_normal.pdf(error, mean = np.zeros(6,1), cov = covariance)
 
         # Normalize the weights and compute the effective sample size
         self.weights /= np.sum(self.weights)
@@ -61,14 +76,15 @@ class ParticleFilterSE3:
         # self.particles = new_particles
         # self.weights = np.ones(self.num_particles) / self.num_particles
 
+        
         W = np.cumsum(self.weights)
         r = np.random.rand(1) / self.num_particles
         count = 0
         for j in range(self.num_particles):
-            u = r + j/self.n
+            u = r + j/self.num_particles
             while u > W[count]:
                 count += 1
-            new_particles[:,j] = self.particles[:,count]
+            new_particles[j] = self.particles[count]
             new_weights[j] = 1 / self.num_particles
         self.particles = new_particles
         self.weights = new_weights
@@ -105,16 +121,17 @@ class ParticleFilterSE3:
         #     zero_mean[5,s] = np.unwrap(zero_mean[5,s])
         # P = zero_mean @ zero_mean.T / self.num_particles
 
-        X = np.mean(self.particles, axis=0)
-
-        # compute the variance of the particles
-        P = np.zeros((6, 6))
-        for p in self.particles:
-            diff = p - X
-            P += np.square(diff).sum(axis=0)
-        P /= len(self.particles)
+        # state_mean = np.mean(self.particles[:].position, axis=0)
         
-        return X, P
+        # # compute the variance of the particles
+        # state_cov = np.zeros((6, 6))
+        # for p in self.particles:
+        #     diff = p.position - state_mean
+        #     state_cov += np.square(diff).sum(axis=0)
+        # state_cov /= len(self.particles)
+        
+        # geodesic mean --> consider 
+        return state_mean, state_cov
         
     @staticmethod
     def rotation_matrix(rotation):
@@ -132,3 +149,16 @@ class ParticleFilterSE3:
             [-sp, cp*sr, cp*cr]
         ])
         return rotation_matrix
+    
+    @staticmethod
+    def se3_to_twistcrd(twist):
+        # Convert from a member of little se(3) to a
+        # 6x1 twist coordinate [v;w]
+
+        omega = np.array([[twist[2,1]],[twist[0,2]],[twist[1,0]]])
+        
+        vel = np.array([[twist[0,3]],[twist[1,3]],[twist[2,3]]])
+        
+        twistcrd = np.vstack((vel,omega))
+
+        return twistcrd

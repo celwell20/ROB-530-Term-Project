@@ -1,17 +1,19 @@
 import Particle_Filter
 import numpy as np
+import scipy
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from scipy.spatial.transform import Rotation
 
 def visualize(states):
     positions = np.array([s[:3, 3] for s in states])
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(positions[:, 0], positions[:, 1], positions[:, 2], c='r')
+    ax.scatter(positions[:, 0], positions[:, 1], positions[:, 2], c='r', s=1)
     for p in states:
         x, y, z = p[:3, 3]
         R = p[:3, :3]
-        scale = 0.2
+        scale = 0.1
         ax.plot([x, x + scale * R[0, 0]], [y, y + scale * R[1, 0]], [z, z + scale * R[2, 0]], c='r')
         ax.plot([x, x + scale * R[0, 1]], [y, y + scale * R[1, 1]], [z, z + scale * R[2, 1]], c='g')
         ax.plot([x, x + scale * R[0, 2]], [y, y + scale * R[1, 2]], [z, z + scale * R[2, 2]], c='b')
@@ -27,9 +29,7 @@ def visualize(states):
     plt.show()    
 
 def main(): #CNN_data should be input eventually
-    
-    #
-    
+    # Final lists to store posterior poses
     states = []
     covariances = []
     # Need to get data containing the measurements from the CNN
@@ -60,15 +60,45 @@ def main(): #CNN_data should be input eventually
         covariances.append(cov)
     return states, covariances
 
+def se3_to_twistcrd(twist):
+        # Convert from a member of little se(3) to a
+        # 6x1 twist coordinate [v;w]
+
+        omega = np.array([[twist[2,1]],[twist[0,2]],[twist[1,0]]])
+        
+        vel = np.array([[twist[0,3]],[twist[1,3]],[twist[2,3]]])
+        
+        twistcrd = np.vstack((vel,omega))
+        
+        return twistcrd
+
 if __name__ == '__main__':
     #states, covariances = main()
-    states = [np.array([[1, 0, 0, 2],
-                       [0, 1, 0, 3],
-                       [0, 0, 1, 4],
-                       [0, 0, 0, 1]]),
-             np.array([[0, 0, 1, 5],
-                       [0, 1, 0, 6],
-                       [-1, 0, 0, 7],
-                       [0, 0, 0, 1]])]
-    covariances = [0.1*np.eye(6) , 0.1*np.eye(6)]
-    visualize(states)
+    # Define the initial pose
+    print(se3_to_twistcrd(scipy.linalg.logm(np.eye(4))))
+    T0 = np.eye(4)
+
+    # Define the velocity in the x, y, z directions and the angular velocity
+    v = np.array([0.25, 0.2, 1])
+    omega = np.array([0.01, 0.02, 0.03])
+
+    # Define the time interval and the number of steps
+    dt = 0.2
+    num_steps = 50
+
+    # Initialize the list of poses
+    poses = [T0]
+
+    # Generate the list of poses using the constant velocity motion model
+    for i in range(num_steps):
+        # Compute the displacement
+        dT = np.eye(4)
+        dT[:3, 3] = v * dt
+        r = Rotation.from_rotvec(omega * dt)
+        dT[:3, :3] = r.as_matrix()
+
+        # Update the pose
+        T = np.dot(poses[-1], dT)
+        poses.append(T)
+
+    visualize(poses)
