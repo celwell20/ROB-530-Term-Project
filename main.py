@@ -49,7 +49,7 @@ def main(CNN_data): #CNN_data should be input eventually
 
     for i in range(len(poses_CNN)):
         # this is an array of the constant velocities we are using to control the robot
-        pf.predict(np.array([0.25,0.2,1,0.01,0.02,0.03]))
+        pf.predict(np.array([0.5,0.5,1,0.5,0,0]))
         n_eff = pf.update(poses_CNN[i], covariance_CNN)
         
         # update the measured pose as if it were moving with the constant velocity model (x-axis velocity only)
@@ -106,8 +106,8 @@ if __name__ == '__main__':
     T0 = np.eye(4)
 
     # Define the velocity in the x, y, z directions and the angular velocity
-    v = np.array([0.25, 0.2, 1])
-    omega = np.array([0.01, 0.02, 0.03])
+    v = np.array([0.5, 0.5, 1])
+    omega = np.array([0.5, 0, 0])
 
     # Define the time interval and the number of steps
     dt = 0.2
@@ -154,20 +154,20 @@ if __name__ == '__main__':
     # and covariances are 6x1 variances associated with each variable. covariance one might need to change due to cross
     # covariance, but i'm not sure.
     states, covariances = main(noisy_data)
-    # for state in states:
-    #     print(state)
+    # # for state in states:
+    # #     print(state)
 
     viz_data = []
     for pose in states:
         state_SE3 = scipy.linalg.expm(twist_to_se3(pose))
         viz_data.append(state_SE3)
-    # # visualize(noisy_data)
+    visualize(noisy_data)
     visualize(viz_data)
     visualize(poses)
-    j = 0
+    # j = 0
     # for pose in poses:
-    #     #printing ground truth data
-    #     #print(poses[j].astype(int))
-    #     #printing particle filter data
-    #     print(viz_data[j])
-    #     j += 1
+        #printing ground truth data
+        #print(poses[j].astype(int))
+        #printing particle filter data
+        # print(pose)
+        # j += 1

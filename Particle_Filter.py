@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 from scipy.stats import multivariate_normal
+from scipy.spatial.transform import Rotation
 
 class SE3:
     def __init__(self, position=np.zeros(3), rotation=np.eye(3)):
@@ -36,15 +37,37 @@ class ParticleFilterSE3:
         self.weights = np.ones(num_particles) / num_particles
 
     def predict(self, control_input):
-        # control_input are the constant control velocities
+        # control_input is the constant control velocities
         dt = 0.2
         new_particles = []
+        # To apply the motion model we want to loop thru the particles and apply the
+        # same constant control input to each particle
+
+        # first we want to calculate the "delta" transformation matrix induced by 
+        # the constant control input
+        dT = np.eye(4)
+        dT[:3, 3] = control_input[:3] * dt
+        r = self.rotation_matrix(control_input[3:]*dt)
+        dT[:3, :3] = r.copy()
+        
+        # then we want to apply this dT to each particle, 
         for pose in self.particles:
-            new_pose = SE3(position=pose.position.copy(), rotation=pose.rotation.copy())
-            new_pose.position += control_input[:3] * dt
-            new_pose.rotation = new_pose.rotation @ self.rotation_matrix(control_input[3:]*dt)
-            new_particles.append(new_pose)
-        self.particles = new_particles
+            # pose.pose() calls a function to return the 4x4 homoegenous transformation
+            # that represents the SE(3) pose
+            new_pose = np.dot(pose.pose(), dT)
+            # and append these updated SE(3) object particles to the list "new_particles"
+            # Use copy to ensure there is no memory address confusion on Python's end
+            new_particles.append(SE3(position=new_pose[:3,3].copy(), rotation=new_pose[:3,:3].copy()))
+        
+        # we then copy new_particles to self.particles to ensure there are no silly referencing
+        # issues that can be oh-so frustrating to debug
+        self.particles = new_particles.copy()
+
+        ## PREVIOUS MOTION MODEL PREDICTION CODE
+            # new_pose = SE3(position=pose.position.copy(), rotation=pose.rotation.copy())
+            # new_pose.position += control_input[:3] * dt
+            # new_pose.rotation = new_pose.rotation @ self.rotation_matrix(control_input[3:]*dt)
+
     
     def update(self, measurement, covariance):
         # Loop through all the particles and compute their weigths based on their vicinity to the measurment
@@ -163,6 +186,12 @@ class ParticleFilterSE3:
             [-sp, cp*sr, cp*cr]
         ])
         return rotation_matrix
+    
+    @staticmethod
+    def rot_vec(R):
+        # get the 3x1 rotation vector from the 3x3 rotation matrix
+        r = Rotation.from_matrix(R)
+        return r.as_rotvec()
     
     @staticmethod
     def se3_to_twistcrd(twist):
