@@ -6,6 +6,12 @@ from scipy.spatial.transform import Rotation
 class SE3:
     def __init__(self, position=np.zeros(3), rotation=np.eye(3)):
         # Construct an SE(3) object based on a provided rotation matrix and position vector.
+        # if other:  
+        #     self.position = other.position
+        #     self.rotation = other.rotation
+        # else:
+        #     self.position = position
+        #     self.rotation = rotation
         self.position = position
         self.rotation = rotation
 
@@ -42,16 +48,21 @@ class ParticleFilterSE3:
         new_particles = []
         # To apply the motion model we want to loop thru the particles and apply the
         # same constant control input to each particle
-
-        # first we want to calculate the "delta" transformation matrix induced by 
-        # the constant control input
-        dT = np.eye(4)
-        dT[:3, 3] = control_input[:3] * dt
-        r = self.rotation_matrix(control_input[3:]*dt)
-        dT[:3, :3] = r.copy()
-        
-        # then we want to apply this dT to each particle, 
+       
         for pose in self.particles:
+
+            # make the motion model "semi-random"
+            control_input = np.array([0.5,0.5,1,0.5,0,0])
+            for i in range(6):
+                control_input[i] += np.random.normal(loc=0., scale=0.5) 
+
+            # first we want to calculate the "delta" transformation matrix induced by 
+            # the constant control input
+            dT = np.eye(4)
+            dT[:3, 3] = control_input[:3] * dt
+            r = self.rotation_matrix(control_input[3:]*dt)
+            dT[:3, :3] = r.copy()
+            # then we want to apply this dT to each particle, 
             # pose.pose() calls a function to return the 4x4 homoegenous transformation
             # that represents the SE(3) pose
             new_pose = np.dot(pose.pose(), dT)
@@ -76,19 +87,47 @@ class ParticleFilterSE3:
             # log map of dot product between particle's pose and the inverse of the measurement pose from CNN
             # log map gives us twist in se(3) which is subsequently converted to 6x1 twist coordinates
             error = self.se3_to_twistcrd(scipy.linalg.logm(np.dot(np.linalg.inv(particle.pose()),measurement)))
-            
+            # print(error)
             # .ravel() flattens an array so it is 1D and a row vector I believe
             self.weights[i] *= multivariate_normal.pdf(error.ravel(), mean = np.zeros(6), cov = covariance)
 
         # Normalize the weights and compute the effective sample size
         self.weights /= np.sum(self.weights)
+        
+
+    #     std::sort(posterior.begin(), posterior.end(), [](mbot_lcm_msgs::particle_t i , mbot_lcm_msgs::particle_t j){ return (i.weight>j.weight); });
+
+    # ParticleList betterPost(posterior.begin(), posterior.begin() + (posterior.size()/20));
+
+    # weightSum = 0.0;
+
+    # for(auto& p: betterPost) {
+    #     weightSum += p.weight;
+    # }
+
+    # for(auto& p: betterPost) {
+    #     p.weight /= weightSum;
+    # }
+
+        # temp_particles, temp_weights = self.sort_objects(self.particles, self.weights)
+        # idx = int(self.num_particles/10)
+
+        # better_weights = temp_weights[0:idx]
+        # better_particles = temp_particles[0:idx]
+
+        # for i in range(len(better_particles)):
+        #     better_weights[i] /= np.sum(better_weights)
+    
+        # self.particles = better_particles.copy()
+        # self.weights = better_weights.copy()
+
         n_eff = 1 / np.sum(self.weights**2)
 
         return n_eff
     
     def resample(self):
         # Initiate the resampled set
-        new_particles = np.zeros_like(self.particles)
+        new_particles = []
         new_weights = np.zeros_like(self.weights)
         
         ## ChatGPT Resampling Algorithm:
@@ -111,10 +150,12 @@ class ParticleFilterSE3:
             u = r + j/self.num_particles
             while u > W[count]:
                 count += 1
-            new_particles[j] = self.particles[count].copy()
+            # check to make sure there is not a referencing issue here
+            # new_particles.append(SE3(other=self.particles[count]))
+            new_particles.append(self.particles[count])
             new_weights[j] = 1 / self.num_particles
-        self.particles = new_particles
-        self.weights = new_weights
+        self.particles = new_particles.copy()
+        self.weights = new_weights.copy()
 
     def mean_variance(self):
 
@@ -212,3 +253,17 @@ class ParticleFilterSE3:
         wrapped_angle = np.mod(angle + np.pi, 2*np.pi) - np.pi
 
         return wrapped_angle
+    
+    @staticmethod
+    def sort_objects(objects, values):
+    # Sort a list of objects by the corresponding values in another list.
+
+    # :param objects: the list of objects to be sorted
+    # :param values: the list of values to sort by
+    # :return: a new list of objects sorted by the corresponding values
+    # """
+        sorted_indices = sorted(range(len(values)), key=lambda i: values[i])
+    
+        sorted_objects = [objects[i] for i in sorted_indices]
+        sorted_weights = np.array([values[i] for i in sorted_indices])
+        return sorted_objects, sorted_weights
