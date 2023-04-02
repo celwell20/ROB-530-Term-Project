@@ -13,7 +13,7 @@ def visualize(states):
     for p in states:
         x, y, z = p[:3, 3]
         R = p[:3, :3]
-        scale = 0.1
+        scale = 0.25
         ax.plot([x, x + scale * R[0, 0]], [y, y + scale * R[1, 0]], [z, z + scale * R[2, 0]], c='r')
         ax.plot([x, x + scale * R[0, 1]], [y, y + scale * R[1, 1]], [z, z + scale * R[2, 1]], c='g')
         ax.plot([x, x + scale * R[0, 2]], [y, y + scale * R[1, 2]], [z, z + scale * R[2, 2]], c='b')
@@ -60,6 +60,8 @@ def main(CNN_data): #CNN_data should be input eventually
         covariances.append(cov)
     return states, covariances
 
+
+
 def se3_to_twistcrd(twist):
         # Convert from a member of little se(3) to a
         # 6x1 twist coordinate [v;w]
@@ -99,5 +101,28 @@ if __name__ == '__main__':
         # Update the pose
         T = np.dot(poses[-1], dT)
         poses.append(T)
-    states, covariances = main(poses)
-    visualize(states)
+    
+
+    # add some noise to the test data for use in the particle filter
+    noisy_data = poses.copy()
+    i = 0
+    for pose in noisy_data:
+          # Extract the rotational and translational components of the poses
+        R = pose[:3, :3]
+        t = pose[:3, 3]
+        
+        # Generate white noise for the rotational and translational components
+        R_noise = np.random.normal(scale=0.1, size=R.shape)
+        t_noise = np.random.normal(scale=0.1, size=t.shape)
+        
+         # Add the noise to the original components
+        R_hat = np.array([[0, -R[2, 1], R[1, 0]], [R[2, 1], 0, -R[0, 2]], [-R[1, 0], R[0, 2], 0]])
+        R_noisy = R @ (np.eye(3) + np.sin(0.1) * R_hat + (1 - np.cos(0.1)) * R_hat @ R_hat)
+        t_noisy = t + t_noise
+        
+        # Combine the noisy rotational and translational components into poses
+        noisy_data[i] = np.row_stack((np.column_stack((R_noisy, t_noisy)),[0, 0, 0, 1]))
+        i += 1
+    #states, covariances = main(poses)
+    visualize(noisy_data)
+    # visualize(states)
