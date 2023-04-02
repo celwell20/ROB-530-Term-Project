@@ -39,8 +39,8 @@ def main(CNN_data): #CNN_data should be input eventually
     # Need to get data containing the measurements from the CNN
     poses_CNN = CNN_data
     #poses_CNN = Particle_Filter.SE3()
-    # arbitrary covariance values
-    covariance_CNN = np.eye(6)*0.1
+    # covariance associated with the measurements
+    covariance_CNN = np.eye(6)*0.25
 
     numParticles = 500
 
@@ -49,7 +49,12 @@ def main(CNN_data): #CNN_data should be input eventually
 
     for i in range(len(poses_CNN)):
         # this is an array of the constant velocities we are using to control the robot
-        pf.predict(np.array([0.5,0.5,1,0.5,0,0]))
+        # pf.predict(np.array([0.5,0.5,1,0.5,0,0]))
+
+        # another set of control velocities for testing; should probaboly update code to have this be an input parameter in main
+        pf.predict(np.array([0.25, 0.2, 1, 0.01, 0.02, 0.03]))
+        
+
         n_eff = pf.update(poses_CNN[i], covariance_CNN)
         
         # update the measured pose as if it were moving with the constant velocity model (x-axis velocity only)
@@ -106,8 +111,12 @@ if __name__ == '__main__':
     T0 = np.eye(4)
 
     # Define the velocity in the x, y, z directions and the angular velocity
-    v = np.array([0.5, 0.5, 1])
-    omega = np.array([0.5, 0, 0])
+    # v = np.array([0.5, 0.5, 1])
+    # omega = np.array([0.5, 0, 0])
+
+    # another set of testing control velocities
+    v = np.array([0.25, 0.2, 1])
+    omega = np.array([0.01, 0.02, 0.03])
 
     # Define the time interval and the number of steps
     dt = 0.2
@@ -138,12 +147,12 @@ if __name__ == '__main__':
         
         # Generate white noise for the rotational and translational components
         # Adjst the scale term to increase the noise of the measurements
-        R_noise = np.random.normal(scale=0.1, size=R.shape)
-        t_noise = np.random.normal(scale=0.1, size=t.shape)
+        #R_noise = np.random.normal(scale=0.25, size=R.shape)
+        t_noise = np.random.normal(scale=0.25, size=t.shape)
         
          # Add the noise to the original components
         R_hat = np.array([[0, -R[2, 1], R[1, 0]], [R[2, 1], 0, -R[0, 2]], [-R[1, 0], R[0, 2], 0]])
-        R_noisy = R @ (np.eye(3) + np.sin(0.1) * R_hat + (1 - np.cos(0.1)) * R_hat @ R_hat)
+        R_noisy = R @ (np.eye(3) + np.sin(0.25) * R_hat + (1 - np.cos(0.25)) * R_hat @ R_hat)
         t_noisy = t + t_noise
         
         # Combine the noisy rotational and translational components into poses
