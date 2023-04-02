@@ -32,17 +32,19 @@ class ParticleFilterSE3:
     def __init__(self, num_particles, initial_pose):
 
         self.num_particles = num_particles
-        self.particles = [SE3(position=initial_pose.position, rotation=initial_pose.rotation) for _ in range(num_particles)]
+        self.particles = [SE3(position=initial_pose.position.copy(), rotation=initial_pose.rotation.copy()) for _ in range(num_particles)]
         self.weights = np.ones(num_particles) / num_particles
 
     def predict(self, control_input):
         # control_input are the constant control velocities
         dt = 0.2
-        for i in range(self.num_particles):
-
-            particle = self.particles[i]
-            particle.position += control_input[:3] * dt
-            particle.rotation = particle.rotation @ self.rotation_matrix(control_input[3:]*dt)
+        new_particles = []
+        for pose in self.particles:
+            new_pose = SE3(position=pose.position.copy(), rotation=pose.rotation.copy())
+            new_pose.position += control_input[:3] * dt
+            new_pose.rotation = new_pose.rotation @ self.rotation_matrix(control_input[3:]*dt)
+            new_particles.append(new_pose)
+        self.particles = new_particles
     
     def update(self, measurement, covariance):
         # Loop through all the particles and compute their weigths based on their vicinity to the measurment
@@ -86,7 +88,7 @@ class ParticleFilterSE3:
             u = r + j/self.num_particles
             while u > W[count]:
                 count += 1
-            new_particles[j] = self.particles[count]
+            new_particles[j] = self.particles[count].copy()
             new_weights[j] = 1 / self.num_particles
         self.particles = new_particles
         self.weights = new_weights
@@ -112,7 +114,7 @@ class ParticleFilterSE3:
         
         for s in range(self.num_particles):
             # could alternatively index from the twists array
-            twist = twists[:,s]
+            twist = twists[:,s].copy()
             #twist = self.se3_to_twistcrd(scipy.linalg.logm(self.particles[s].pose()))
 
             # idk what this stuff does but maani does it
@@ -142,7 +144,7 @@ class ParticleFilterSE3:
         state_cov = zero_mean @ zero_mean.T / self.num_particles
         
         # geodesic mean --> consider ?
-        state_mean = X
+        state_mean = X.copy()
         return state_mean, state_cov
         
     @staticmethod

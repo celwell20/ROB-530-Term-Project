@@ -83,6 +83,7 @@ def twist_to_se3(twist):
     w_hat = np.array([[0, -w[2], w[1]], [w[2], 0, -w[0]], [-w[1], w[0], 0]])
     
     # Construct the 4x4 twist matrix in se(3)
+    # twist_se3 = np.row_stack((np.column_stack((w_hat, v)),[0, 0, 0, 0]))
     twist_se3 = np.block([[w_hat, v[:, np.newaxis]], [np.zeros((1, 3)), 0]])
     
     return twist_se3
@@ -126,7 +127,6 @@ if __name__ == '__main__':
         # Update the pose
         T = np.dot(poses[-1], dT)
         poses.append(T)
-    
 
     # add some noise to the test data for use in the particle filter
     noisy_data = poses.copy()
@@ -154,18 +154,20 @@ if __name__ == '__main__':
     # and covariances are 6x1 variances associated with each variable. covariance one might need to change due to cross
     # covariance, but i'm not sure.
     states, covariances = main(poses)
-    
+    # for state in states:
+    #     print(state)
+
     viz_data = []
     for pose in states:
         state_SE3 = scipy.linalg.expm(twist_to_se3(pose))
         viz_data.append(state_SE3)
-    # visualize(noisy_data)
+    # # visualize(noisy_data)
     visualize(viz_data)
     visualize(poses)
     j = 0
-    for pose in states:
-        #printing ground truth data
-        print(poses[j].astype(int))
-        #printing particle filter data
-        print(viz_data[j].astype(int))
-        j += 1
+    # for pose in poses:
+    #     #printing ground truth data
+    #     #print(poses[j].astype(int))
+    #     #printing particle filter data
+    #     print(viz_data[j])
+    #     j += 1
