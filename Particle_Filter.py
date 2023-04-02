@@ -36,12 +36,13 @@ class ParticleFilterSE3:
         self.weights = np.ones(num_particles) / num_particles
 
     def predict(self, control_input):
-
+        # control_input are the constant control velocities
+        dt = 0.2
         for i in range(self.num_particles):
 
             particle = self.particles[i]
-            particle.position += control_input[:3]
-            particle.rotation = particle.rotation @ self.rotation_matrix(control_input[3:])
+            particle.position += control_input[:3] * dt
+            particle.rotation = particle.rotation @ self.rotation_matrix(control_input[3:]*dt)
     
     def update(self, measurement, covariance):
         # Loop through all the particles and compute their weigths based on their vicinity to the measurment
@@ -137,7 +138,7 @@ class ParticleFilterSE3:
             zero_mean[3,s] = self.wrapToPi(zero_mean[3,s])
             zero_mean[4,s] = self.wrapToPi(zero_mean[4,s])
             zero_mean[5,s] = self.wrapToPi(zero_mean[5,s])
-
+        
         state_cov = zero_mean @ zero_mean.T / self.num_particles
         
         # geodesic mean --> consider ?
