@@ -10,7 +10,7 @@ class SE3:
 
     def pose(self):
         # Return the pose
-        pose = [np.row_stack(np.column_stack(self.rotation, self.position.T),[0, 0, 0, 1])]
+        pose = np.row_stack((np.column_stack((self.rotation, self.position.T)),[0, 0, 0, 1]))
         return pose
     
     def se3_to_twistcrd(self):
@@ -48,10 +48,11 @@ class ParticleFilterSE3:
         for i in range(self.num_particles):
             particle = self.particles[i]
             # log map of dot product between particle's pose and the inverse of the measurement pose from CNN
-
-            # write method to convert from 
-            error = self.se3_to_twistcrd(scipy.linalg.logm(np.dot(np.linalg.inv(particle.pose()),measurement.pose())))
-            self.weights[i] *= multivariate_normal.pdf(error, mean = np.zeros(6,1), cov = covariance)
+            # log map gives us twist in se(3) which is subsequently converted to 6x1 twist coordinates
+            error = self.se3_to_twistcrd(scipy.linalg.logm(np.dot(np.linalg.inv(particle.pose()),measurement)))
+            
+            # .ravel() flattens an array so it is 1D and a row vector I believe
+            self.weights[i] *= multivariate_normal.pdf(error.ravel(), mean = np.zeros(6), cov = covariance)
 
         # Normalize the weights and compute the effective sample size
         self.weights /= np.sum(self.weights)
@@ -90,47 +91,57 @@ class ParticleFilterSE3:
         self.weights = new_weights
 
     def mean_variance(self):
-        # X = np.mean(self.particles, axis=1)
-        # sinSum3 = 0
-        # cosSum3 = 0
-        # sinSum4 = 0
-        # cosSum4 = 0
-        # sinSum5 = 0
-        # cosSum5 = 0
-        
-        # for s in range(self.n):
 
-        #     se3_particle = np.linalg.logm(self.particles[i])
-        #     screw
+        #preallocate twist coord array
+        twists = np.zeros((6,self.num_particles))
 
-        #     cosSum3 += np.cos(self.particles[3,s])
-        #     sinSum3 += np.sin(self.particles[3,s])
-        #     cosSum4 += np.cos(self.particles[4,s])
-        #     sinSum4 += np.sin(self.particles[4,s])
-        #     cosSum5 += np.cos(self.particles[5,s])
-        #     sinSum5 += np.sin(self.particles[5,s])
-        # X[3] = np.arctan2(sinSum3, cosSum3)
-        # X[4] = np.arctan2(sinSum4, cosSum4)
-        # X[5] = np.arctan2(sinSum5, cosSum5)
+        # populate twist coord array
+        for i in range(self.num_particles):
+            # calculate the 6x1 twist coordinate value and add it to the twist coordinate array
+            twists[:,i] = self.se3_to_twistcrd(scipy.linalg.logm(self.particles[i].pose())).reshape(6,)
+        # calculate the mean of all the 6x1 twist coordiantes
+        X = np.mean(twists, axis=1)
+        #initiating values
+        sinSum3 = 0
+        cosSum3 = 0
+        sinSum4 = 0
+        cosSum4 = 0
+        sinSum5 = 0
+        cosSum5 = 0
         
-        # zero_mean = np.zeros_like(self.particles)
-        # for s in range(self.n):
-        #     zero_mean[:,s] = self.particles[:,s] - X
-        #     zero_mean[3,s] = np.unwrap(zero_mean[3,s])
-        #     zero_mean[4,s] = np.unwrap(zero_mean[4,s])
-        #     zero_mean[5,s] = np.unwrap(zero_mean[5,s])
-        # P = zero_mean @ zero_mean.T / self.num_particles
+        for s in range(self.num_particles):
+            # could alternatively index from the twists array
+            twist = twists[:,s]
+            #twist = self.se3_to_twistcrd(scipy.linalg.logm(self.particles[s].pose()))
 
-        # state_mean = np.mean(self.particles[:].position, axis=0)
+            # idk what this stuff does but maani does it
+            cosSum3 += np.cos(twist[3])
+            sinSum3 += np.sin(twist[3])
+            cosSum4 += np.cos(twist[4])
+            sinSum4 += np.sin(twist[4])
+            cosSum5 += np.cos(twist[5])
+            sinSum5 += np.sin(twist[5])
+
+        # same here it's just stuff from maani's code but expanded to SE(3)
+        X[3] = np.arctan2(sinSum3, cosSum3)
+        X[4] = np.arctan2(sinSum4, cosSum4)
+        X[5] = np.arctan2(sinSum5, cosSum5)
         
-        # # compute the variance of the particles
-        # state_cov = np.zeros((6, 6))
-        # for p in self.particles:
-        #     diff = p.position - state_mean
-        #     state_cov += np.square(diff).sum(axis=0)
-        # state_cov /= len(self.particles)
+        # preallocating array for covariance calculation
+        zero_mean = np.zeros((6,self.num_particles))
+
+        # morer random stuff taken from maani's code
+        for s in range(self.num_particles):
+
+            zero_mean[:,s] = twists[:,s] - X
+            zero_mean[3,s] = self.wrapToPi(zero_mean[3,s])
+            zero_mean[4,s] = self.wrapToPi(zero_mean[4,s])
+            zero_mean[5,s] = self.wrapToPi(zero_mean[5,s])
+
+        state_cov = zero_mean @ zero_mean.T / self.num_particles
         
-        # geodesic mean --> consider 
+        # geodesic mean --> consider ?
+        state_mean = X
         return state_mean, state_cov
         
     @staticmethod
@@ -162,3 +173,10 @@ class ParticleFilterSE3:
         twistcrd = np.vstack((vel,omega))
 
         return twistcrd
+    
+    @staticmethod
+    def wrapToPi(angle):
+        # Correct an angle for overflow beyond pi radians
+        wrapped_angle = np.mod(angle + np.pi, 2*np.pi) - np.pi
+
+        return wrapped_angle

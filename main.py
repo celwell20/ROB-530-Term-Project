@@ -28,17 +28,17 @@ def visualize(states):
     ax.set_zlim3d(min_lim, max_lim)
     plt.show()    
 
-def main(): #CNN_data should be input eventually
+def main(CNN_data): #CNN_data should be input eventually
     # Final lists to store posterior poses
     states = []
     covariances = []
     # Need to get data containing the measurements from the CNN
-    # poses_CNN = CNN_data
-    poses_CNN = Particle_Filter.SE3()
+    poses_CNN = CNN_data
+    #poses_CNN = Particle_Filter.SE3()
     # arbitrary covariance values
     covariance_CNN = np.eye(6)*0.1
 
-    numParticles = 1000
+    numParticles = 500
 
     initPose = Particle_Filter.SE3() # initialize at origin aligned with inertial ref. frame
     pf = Particle_Filter.ParticleFilterSE3(numParticles, initPose) # initialize particle filter object with initial pose
@@ -46,10 +46,10 @@ def main(): #CNN_data should be input eventually
     for i in range(len(poses_CNN)):
 
         pf.predict(np.array([1,0,0,0,0,0]))
-        n_eff = pf.update(poses_CNN, covariance_CNN)
+        n_eff = pf.update(poses_CNN[i], covariance_CNN)
         
         # update the measured pose as if it were moving with the constant velocity model (x-axis velocity only)
-        poses_CNN.position[1] += 1
+        #poses_CNN.position[1] += 1
         
         if n_eff < numParticles/3:
             pf.resample()
@@ -75,7 +75,6 @@ def se3_to_twistcrd(twist):
 if __name__ == '__main__':
     #states, covariances = main()
     # Define the initial pose
-    print(se3_to_twistcrd(scipy.linalg.logm(np.eye(4))))
     T0 = np.eye(4)
 
     # Define the velocity in the x, y, z directions and the angular velocity
@@ -100,5 +99,5 @@ if __name__ == '__main__':
         # Update the pose
         T = np.dot(poses[-1], dT)
         poses.append(T)
-
-    visualize(poses)
+    states, covariances = main(poses)
+    visualize(states)
