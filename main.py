@@ -138,8 +138,8 @@ if __name__ == '__main__':
         
         # Generate white noise for the rotational and translational components
         # Adjst the scale term to increase the noise of the measurements
-        R_noise = np.random.normal(scale=0.25, size=R.shape)
-        t_noise = np.random.normal(scale=0.25, size=t.shape)
+        R_noise = np.random.normal(scale=0.1, size=R.shape)
+        t_noise = np.random.normal(scale=0.1, size=t.shape)
         
          # Add the noise to the original components
         R_hat = np.array([[0, -R[2, 1], R[1, 0]], [R[2, 1], 0, -R[0, 2]], [-R[1, 0], R[0, 2], 0]])
@@ -153,7 +153,7 @@ if __name__ == '__main__':
     # these are the posterior mean and variances produced by the particle filter. states are 6x1 twist coordinate vectors
     # and covariances are 6x1 variances associated with each variable. covariance one might need to change due to cross
     # covariance, but i'm not sure.
-    states, covariances = main(poses)
+    states, covariances = main(noisy_data)
     # for state in states:
     #     print(state)
 
