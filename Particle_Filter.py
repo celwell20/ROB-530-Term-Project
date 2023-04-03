@@ -54,7 +54,7 @@ class ParticleFilterSE3:
             # make the motion model "semi-random"
             control_input = np.array([0.5,0.5,1,0.5,0,0])
             for i in range(6):
-                control_input[i] += np.random.normal(loc=0., scale=0.5) 
+                control_input[i] += np.random.normal(loc=0., scale=0.75) 
 
             # first we want to calculate the "delta" transformation matrix induced by 
             # the constant control input
@@ -121,10 +121,37 @@ class ParticleFilterSE3:
         # self.particles = better_particles.copy()
         # self.weights = better_weights.copy()
 
+        # revinvigorate particles after taking highest weighted particles in update step
+        # self.reinvigorate()
+
         n_eff = 1 / np.sum(self.weights**2)
 
         return n_eff
     
+    def reinvigorate(self):
+    # """
+    # Reinvigorates the particles by randomly selecting them according to their weights.
+
+    # Args:
+    # particles (list): a list of particles
+    # weights (list): a list of weights corresponding to each particle
+
+    # Returns:
+    # list: a list of particles that have been reinvigorated
+    # """
+
+        # Normalize the weights to sum to 1
+        weights_sum = np.sum(self.weights)
+        normalized_weights = [weight/weights_sum for weight in self.weights]
+
+        # Sample new particles according to the normalized weights
+        new_particles = np.random.choice(self.particles, size=self.num_particles, replace=True, p=normalized_weights)
+        new_particle_weights = np.array([self.weights[self.particles.index(particle)] for particle in new_particles])
+
+        self.weights = new_particle_weights.copy()
+        self.particles = new_particles.copy().tolist()
+
+        
     def resample(self):
         # Initiate the resampled set
         new_particles = []

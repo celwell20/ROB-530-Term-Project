@@ -5,6 +5,30 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial.transform import Rotation
 
+def plot_errors(errors):
+    """
+    Plots a list of errors versus its indices.
+
+    Args:
+    errors (list): a list of errors to be plotted
+
+    Returns:
+    None
+    """
+    # Create a list of indices from 0 to the length of the errors list
+    indices = range(len(errors))
+
+    # Create a plot with the indices on the x-axis and the errors on the y-axis
+    plt.plot(indices, errors)
+
+    # Set the title and labels for the plot
+    plt.title('Errors vs Indices')
+    plt.xlabel('Index')
+    plt.ylabel('Error')
+
+    # Show the plot
+    plt.show()
+
 def visualize(states):
     # states estimated by the particle filters
     # true data without any noise from "measurements"
@@ -31,47 +55,6 @@ def visualize(states):
     ax.set_ylim3d(min_lim, max_lim)
     ax.set_zlim3d(min_lim, max_lim)
     plt.show()    
-
-def main(CNN_data): #CNN_data should be input eventually
-    # Final lists to store posterior poses
-    states = []
-    covariances = []
-    # Need to get data containing the measurements from the CNN
-    poses_CNN = CNN_data
-    #poses_CNN = Particle_Filter.SE3()
-    # covariance associated with the measurements
-    covariance_CNN = np.eye(6)*0.1
-
-    numParticles = 250
-    
-    initPose = Particle_Filter.SE3() # initialize at origin aligned with inertial ref. frame
-    pf = Particle_Filter.ParticleFilterSE3(numParticles, initPose) # initialize particle filter object with initial pose
-
-    for i in range(len(poses_CNN)):
-        # this is an array of the constant velocities we are using to predict the motion of the robot
-        #pf.predict(np.array([0.5,0.5,1,0.5,0,0]))
-
-        # another set of motion model velocities for testing; should probaboly update code to have this be an input parameter in main
-        # pf.predict(np.array([0.25, 0.2, 1, 0.01, 0.02, 0.03]))
-        
-        # random walk motion model
-        random_walk = np.array([0.5,0.5,1,0.5,0,0])
-        
-        pf.predict(random_walk)
-        
-        n_eff = pf.update(poses_CNN[i], covariance_CNN)
-        
-        # update the measured pose as if it were moving with the constant velocity model (x-axis velocity only)
-        #poses_CNN.position[1] += 1
-        
-        if n_eff < numParticles/3:
-            pf.resample()
-
-        state, cov = pf.mean_variance()
-
-        states.append(state)
-        covariances.append(cov)
-    return states, covariances
 
 def twist_to_se3(twist):
     """
@@ -108,6 +91,50 @@ def se3_to_twistcrd(twist):
         twistcrd = np.vstack((vel,omega))
         
         return twistcrd
+
+def main(CNN_data): #CNN_data should be input eventually
+    # Final lists to store posterior poses
+    states = []
+    covariances = []
+    # Need to get data containing the measurements from the CNN
+    poses_CNN = CNN_data
+    #poses_CNN = Particle_Filter.SE3()
+    # covariance associated with the measurements
+    covariance_CNN = np.eye(6)*0.25
+
+    numParticles = 250
+    
+    initPose = Particle_Filter.SE3() # initialize at origin aligned with inertial ref. frame
+    pf = Particle_Filter.ParticleFilterSE3(numParticles, initPose) # initialize particle filter object with initial pose
+
+    for i in range(len(poses_CNN)):
+        # this is an array of the constant velocities we are using to predict the motion of the robot
+        #pf.predict(np.array([0.5,0.5,1,0.5,0,0]))
+
+        # another set of motion model velocities for testing; should probaboly update code to have this be an input parameter in main
+        # pf.predict(np.array([0.25, 0.2, 1, 0.01, 0.02, 0.03]))
+        
+        # random walk motion model
+        random_walk = np.array([0.5,0.5,1,0.5,0,0])
+        
+        pf.predict(random_walk)
+        
+        n_eff = pf.update(poses_CNN[i], covariance_CNN)
+        # _ = pf.update(poses_CNN[i], covariance_CNN)
+        
+        # update the measured pose as if it were moving with the constant velocity model (x-axis velocity only)
+        #poses_CNN.position[1] += 1
+        
+        if n_eff < numParticles/3:
+            pf.resample()
+
+        # pf.reinvigorate()
+
+        state, cov = pf.mean_variance()
+
+        states.append(state)
+        covariances.append(cov)
+    return states, covariances
 
 if __name__ == '__main__':
     #states, covariances = main()
@@ -163,11 +190,11 @@ if __name__ == '__main__':
         # Generate white noise for the rotational and translational components
         # Adjst the scale term to increase the noise of the measurements
         #R_noise = np.random.normal(scale=0.25, size=R.shape)
-        t_noise = np.random.normal(scale=0.1, size=t.shape)
+        t_noise = np.random.normal(scale=0.25, size=t.shape)
         
          # Add the noise to the original components
         R_hat = np.array([[0, -R[2, 1], R[1, 0]], [R[2, 1], 0, -R[0, 2]], [-R[1, 0], R[0, 2], 0]])
-        R_noisy = R @ (np.eye(3) + np.sin(0.1) * R_hat + (1 - np.cos(0.1)) * R_hat @ R_hat)
+        R_noisy = R @ (np.eye(3) + np.sin(0.25) * R_hat + (1 - np.cos(0.25)) * R_hat @ R_hat)
         t_noisy = t + t_noise
         
         # Combine the noisy rotational and translational components into poses
@@ -188,6 +215,15 @@ if __name__ == '__main__':
     # visualize(noisy_data)
     visualize(viz_data)
     visualize(poses)
+
+    i = 0
+    errors = []
+    for pose in poses:
+        error = se3_to_twistcrd( scipy.linalg.logm ( np.dot( np.linalg.inv(pose.copy()) , viz_data[i].copy() ) ) )
+        errors.append(np.linalg.norm(error))
+        i += 1
+    plot_errors(errors)
+    
     # j = 0
     # for pose in poses:
         #printing ground truth data
