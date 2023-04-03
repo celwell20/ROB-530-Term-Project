@@ -87,27 +87,11 @@ class ParticleFilterSE3:
             # log map of dot product between particle's pose and the inverse of the measurement pose from CNN
             # log map gives us twist in se(3) which is subsequently converted to 6x1 twist coordinates
             error = self.se3_to_twistcrd(scipy.linalg.logm(np.dot(np.linalg.inv(particle.pose()),measurement)))
-            # print(error)
-            # .ravel() flattens an array so it is 1D and a row vector I believe
+            
             self.weights[i] *= multivariate_normal.pdf(error.ravel(), mean = np.zeros(6), cov = covariance)
 
         # Normalize the weights and compute the effective sample size
         self.weights /= np.sum(self.weights)
-        
-
-    #     std::sort(posterior.begin(), posterior.end(), [](mbot_lcm_msgs::particle_t i , mbot_lcm_msgs::particle_t j){ return (i.weight>j.weight); });
-
-    # ParticleList betterPost(posterior.begin(), posterior.begin() + (posterior.size()/20));
-
-    # weightSum = 0.0;
-
-    # for(auto& p: betterPost) {
-    #     weightSum += p.weight;
-    # }
-
-    # for(auto& p: betterPost) {
-    #     p.weight /= weightSum;
-    # }
 
         # temp_particles, temp_weights = self.sort_objects(self.particles, self.weights)
         # idx = int(self.num_particles/10)

@@ -29,7 +29,7 @@ def plot_errors(errors):
     # Show the plot
     plt.show()
 
-def visualize(states):
+def visualize(states, title_string):
     # states estimated by the particle filters
     # true data without any noise from "measurements"
     positions = np.array([s[:3, 3] for s in states])
@@ -41,7 +41,7 @@ def visualize(states):
     for p in states:
         x, y, z = p[:3, 3]
         R = p[:3, :3]
-        scale = 0.25
+        scale = 0.1
         ax.plot([x, x + scale * R[0, 0]], [y, y + scale * R[1, 0]], [z, z + scale * R[2, 0]], c='r')
         ax.plot([x, x + scale * R[0, 1]], [y, y + scale * R[1, 1]], [z, z + scale * R[2, 1]], c='g')
         ax.plot([x, x + scale * R[0, 2]], [y, y + scale * R[1, 2]], [z, z + scale * R[2, 2]], c='b')
@@ -53,6 +53,14 @@ def visualize(states):
     max_lim = np.max(positions) + 1
     ax.set_xlim3d(min_lim, max_lim)
     ax.set_ylim3d(min_lim, max_lim)
+
+    if title_string == "truth":
+        plt.title("Ground Truth")
+    elif title_string == "filtered":
+        plt.title("Particle Filter Estimate")
+    elif title_string == "noise":
+        plt.title("Noisy Data")
+
     ax.set_zlim3d(min_lim, max_lim)
     plt.show()    
 
@@ -116,6 +124,7 @@ def main(CNN_data): #CNN_data should be input eventually
         
         # random walk motion model
         random_walk = np.array([0.5,0.5,1,0.5,0,0])
+        # random_walk = np.array([0.25, 0.2, 1, 0.01, 0.02, 0.03])
         
         pf.predict(random_walk)
         
@@ -152,7 +161,7 @@ if __name__ == '__main__':
     # omega = np.array([0.01, 0.02, 0.03])
 
     # Define the time interval and the number of steps
-    dt = 0.2
+    dt = 0.1
     num_steps = 300
 
     # Initialize the list of poses
@@ -212,9 +221,9 @@ if __name__ == '__main__':
     for pose in states:
         state_SE3 = scipy.linalg.expm(twist_to_se3(pose))
         viz_data.append(state_SE3)
-    # visualize(noisy_data)
-    visualize(viz_data)
-    visualize(poses)
+    visualize(noisy_data, "noise")
+    visualize(viz_data, "filtered")
+    visualize(poses, "truth")
 
     i = 0
     errors = []
