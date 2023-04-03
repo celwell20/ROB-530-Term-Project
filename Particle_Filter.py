@@ -42,6 +42,14 @@ class ParticleFilterSE3:
         self.particles = [SE3(position=initial_pose.position.copy(), rotation=initial_pose.rotation.copy()) for _ in range(num_particles)]
         self.weights = np.ones(num_particles) / num_particles
 
+    def invSE3(self, pose):
+        # Closed form inverse solution for a pose in SE(3)
+        R = pose[:3,:3]
+        p = pose[:3,3]
+        inv = np.row_stack((np.column_stack( ( np.transpose(R), np.dot(-np.transpose(R),p) ) ),[0, 0, 0, 1]))
+        return inv
+
+
     def predict(self, control_input):
         # control_input is the constant control velocities
         dt = 0.2
@@ -86,7 +94,7 @@ class ParticleFilterSE3:
             particle = self.particles[i]
             # log map of dot product between particle's pose and the inverse of the measurement pose from CNN
             # log map gives us twist in se(3) which is subsequently converted to 6x1 twist coordinates
-            error = self.se3_to_twistcrd(scipy.linalg.logm(np.dot(np.linalg.inv(particle.pose()),measurement)))
+            error = self.se3_to_twistcrd(scipy.linalg.logm(np.dot(self.invSE3(particle.pose()),measurement)))
             
             self.weights[i] *= multivariate_normal.pdf(error.ravel(), mean = np.zeros(6), cov = covariance)
 

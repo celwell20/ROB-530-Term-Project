@@ -3,6 +3,7 @@ import numpy as np
 import scipy
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import time
 from scipy.spatial.transform import Rotation
 
 def plot_errors(errors):
@@ -123,8 +124,8 @@ def main(CNN_data): #CNN_data should be input eventually
         # pf.predict(np.array([0.25, 0.2, 1, 0.01, 0.02, 0.03]))
         
         # random walk motion model
-        random_walk = np.array([0.5,0.5,1,0.5,0,0])
-        # random_walk = np.array([0.25, 0.2, 1, 0.01, 0.02, 0.03])
+        # random_walk = np.array([0.5,0.5,1,0.5,0,0])
+        random_walk = np.array([0.25, 0.2, 1, 0.01, 0, 0.03])
         
         pf.predict(random_walk)
         
@@ -151,18 +152,22 @@ if __name__ == '__main__':
     T0 = np.eye(4)
 
     # Define the velocity in the x, y, z directions and the angular velocity
-    v = np.array([0.5, 0.5, 1])
-    omega = np.array([0.5, 0, 0])
+    # v = np.array([0.5, 0.5, 1])
+    # omega = np.array([0.5, 0, 0])
     # for i in range(3):
     #     v[i] += np.random.normal(loc=0., scale=0.1) 
     #     omega[i] += np.random.normal(loc=0., scale=0.1) 
     # another set of testing control velocities
-    # v = np.array([0.25, 0.2, 1])
-    # omega = np.array([0.01, 0.02, 0.03])
+    v = np.array([0.25, 0.2, 1])
+    omega = np.array([0.01, 0.1, 0.03])
+    # v = np.array([0.5, 0.5, 0.75])
+    # omega = np.array([0.5, 0, 0])
+
+    # another set of test velocities:
 
     # Define the time interval and the number of steps
     dt = 0.1
-    num_steps = 300
+    num_steps = 450
 
     # Initialize the list of poses
     poses = [T0]
@@ -235,8 +240,9 @@ if __name__ == '__main__':
     
     # j = 0
     # for pose in poses:
-        #printing ground truth data
-        #print(poses[j].astype(int))
+    #     #printing ground truth data
+    #     time.sleep(0.25)
+    #     print(pose.astype(int))
         #printing particle filter data
-        # print(pose)
+        # print(viz_data[j])
         # j += 1
