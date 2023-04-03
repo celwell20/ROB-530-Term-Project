@@ -56,11 +56,11 @@ class ParticleFilterSE3:
         new_particles = []
         # To apply the motion model we want to loop thru the particles and apply the
         # same constant control input to each particle
-       
+        init_ctrl = control_input.copy()
         for pose in self.particles:
 
             # make the motion model "semi-random"
-            control_input = np.array([0.5,0.5,1,0.5,0,0])
+            control_input = init_ctrl.copy()
             for i in range(6):
                 control_input[i] += np.random.normal(loc=0., scale=0.75) 
 

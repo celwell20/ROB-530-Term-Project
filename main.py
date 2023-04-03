@@ -125,7 +125,7 @@ def main(CNN_data): #CNN_data should be input eventually
         
         # random walk motion model
         # random_walk = np.array([0.5,0.5,1,0.5,0,0])
-        random_walk = np.array([0.25, 0.2, 1, 0.01, 0, 0.03])
+        random_walk = np.array([0.25, 0.2, .75, 0.01, 0.03, 0.03])
         
         pf.predict(random_walk)
         
@@ -158,15 +158,15 @@ if __name__ == '__main__':
     #     v[i] += np.random.normal(loc=0., scale=0.1) 
     #     omega[i] += np.random.normal(loc=0., scale=0.1) 
     # another set of testing control velocities
-    v = np.array([0.25, 0.2, 1])
-    omega = np.array([0.01, 0.1, 0.03])
+    v = np.array([0.25, 0.2, 0])
+    omega = np.array([0, 0, 0.025])
     # v = np.array([0.5, 0.5, 0.75])
     # omega = np.array([0.5, 0, 0])
 
     # another set of test velocities:
 
     # Define the time interval and the number of steps
-    dt = 0.1
+    dt = 0.2
     num_steps = 450
 
     # Initialize the list of poses
