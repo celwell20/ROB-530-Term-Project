@@ -217,10 +217,10 @@ class ParticleFilterSE3:
     def mean_variance(self):
 
         #preallocate twist coord array
-        twists = np.zeros((6,int(self.num_particles/10)))
+        twists = np.zeros((6,self.num_particles))
 
         # populate twist coord array
-        for i in range(int(self.num_particles/10)):
+        for i in range(self.num_particles):
             # calculate the 6x1 twist coordinate value and add it to the twist coordinate array
             omega = self.rot_vec(self.particles[i].rotation)
             v = self.particles[i].position
@@ -243,7 +243,7 @@ class ParticleFilterSE3:
         sinSum5 = 0
         cosSum5 = 0
         
-        for s in range(int(self.num_particles/10)):
+        for s in range(self.num_particles):
             # could alternatively index from the twists array
             twist = twists[:,s].copy()
             #twist = self.se3_to_twistcrd(scipy.linalg.logm(self.particles[s].pose()))
@@ -262,17 +262,17 @@ class ParticleFilterSE3:
         X[5] = np.arctan2(sinSum5, cosSum5)
         
         # preallocating array for covariance calculation
-        zero_mean = np.zeros((6,int(self.num_particles/10)))
+        zero_mean = np.zeros((6,self.num_particles))
 
         # morer random stuff taken from maani's code
-        for s in range(int(self.num_particles/10)):
+        for s in range(self.num_particles):
 
             zero_mean[:,s] = twists[:,s] - X
             zero_mean[3,s] = self.wrapToPi(zero_mean[3,s])
             zero_mean[4,s] = self.wrapToPi(zero_mean[4,s])
             zero_mean[5,s] = self.wrapToPi(zero_mean[5,s])
         
-        state_cov = zero_mean @ zero_mean.T / int(self.num_particles/10)
+        state_cov = zero_mean @ zero_mean.T / self.num_particles
         
         # geodesic mean --> consider ?
         state_mean = X.copy()

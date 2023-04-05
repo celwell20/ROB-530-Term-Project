@@ -39,14 +39,19 @@ def visualize(states, title_string):
     ax = fig.add_subplot(111, projection='3d')
     ax.scatter(positions[:, 0], positions[:, 1], positions[:, 2], c='r', s=1)
     #ax.scatter(truth_pos[:, 0], truth_pos[:, 1], truth_pos[:, 2], c='k', s=1)
-    for p in states:
-        x, y, z = p[:3, 3]
-        R = p[:3, :3]
-        scale = 0.1
-        ax.plot([x, x + scale * R[0, 0]], [y, y + scale * R[1, 0]], [z, z + scale * R[2, 0]], c='r')
-        ax.plot([x, x + scale * R[0, 1]], [y, y + scale * R[1, 1]], [z, z + scale * R[2, 1]], c='g')
-        ax.plot([x, x + scale * R[0, 2]], [y, y + scale * R[1, 2]], [z, z + scale * R[2, 2]], c='b')
-    
+    crdFrame_idx = 0
+    # for p in states:
+
+    #     if crdFrame_idx % 5 == 0:
+    #         x, y, z = p[:3, 3]
+    #         R = p[:3, :3]
+    #         scale = 0.5
+    #         ax.plot([x, x + scale * R[0, 0]], [y, y + scale * R[1, 0]], [z, z + scale * R[2, 0]], c='r')
+    #         ax.plot([x, x + scale * R[0, 1]], [y, y + scale * R[1, 1]], [z, z + scale * R[2, 1]], c='g')
+    #         ax.plot([x, x + scale * R[0, 2]], [y, y + scale * R[1, 2]], [z, z + scale * R[2, 2]], c='b')
+        
+    #     crdFrame_idx += 1
+
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
@@ -125,7 +130,7 @@ def main(CNN_data, truth): #CNN_data should be input eventually
     poses_CNN = CNN_data.copy()
     #poses_CNN = Particle_Filter.SE3()
     # covariance associated with the measurements
-    covariance_CNN = np.eye(6)*0.2
+    covariance_CNN = np.eye(6)*0.5
 
     numParticles = 200
     
@@ -208,7 +213,7 @@ if __name__ == '__main__':
     # another set of test velocities:
 
     # Define the time interval and the number of steps
-    dt = 0.15
+    dt = 0.1
     num_steps = 300
 
     # Initialize the list of poses
@@ -238,11 +243,11 @@ if __name__ == '__main__':
         # Generate white noise for the rotational and translational components
         # Adjst the scale term to increase the noise of the measurements
         #R_noise = np.random.normal(scale=0.25, size=R.shape)
-        t_noise = np.random.normal(scale=0.2, size=t.shape)
+        t_noise = np.random.normal(scale=0.5, size=t.shape)
         
          # Add the noise to the original components
         R_hat = np.array([[0, -R[2, 1], R[1, 0]], [R[2, 1], 0, -R[0, 2]], [-R[1, 0], R[0, 2], 0]])
-        R_noisy = R @ (np.eye(3) + np.sin(0.2) * R_hat + (1 - np.cos(0.2)) * R_hat @ R_hat)
+        R_noisy = R @ (np.eye(3) + np.sin(0.5) * R_hat + (1 - np.cos(0.5)) * R_hat @ R_hat)
         t_noisy = t + t_noise
         
         # Combine the noisy rotational and translational components into poses
@@ -260,9 +265,9 @@ if __name__ == '__main__':
     for pose in states:
         state_SE3 = so3toSO3(twist_to_se3(pose))
         viz_data.append(state_SE3)
-    # visualize(noisy_data, "noise")
-    # visualize(viz_data, "filtered")
-    # visualize(poses, "truth")
+    visualize(noisy_data, "noise")
+    visualize(viz_data, "filtered")
+    visualize(poses, "truth")
 
     i = 0
     errors = []
