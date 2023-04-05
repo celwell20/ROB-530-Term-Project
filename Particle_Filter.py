@@ -2,6 +2,7 @@ import numpy as np
 import scipy
 from scipy.stats import multivariate_normal
 from scipy.spatial.transform import Rotation
+from transforms3d.quaternions import mat2quat, qmult, qinverse
 
 class SE3:
     def __init__(self, position=np.zeros(3), rotation=np.eye(3)):
@@ -48,7 +49,32 @@ class ParticleFilterSE3:
         p = pose[:3,3]
         inv = np.row_stack((np.column_stack( ( np.transpose(R), np.dot(-np.transpose(R),p) ) ),[0, 0, 0, 1]))
         return inv
+    
+    def orientation_error(self, T1, T2):
+        q1 = mat2quat(T1[0:3, 0:3])
+        q2 = mat2quat(T2[0:3, 0:3])
+        q_rel = qmult(qinverse(q1), q2)
+        angle = 2 * np.arccos(abs(q_rel[0]))
 
+        if angle > np.pi:
+            angle = 2 * np.pi - angle
+
+        if angle < 1e-12:
+            orientation_error = 0
+        else:
+            log_q_rel = np.zeros(4)
+            log_q_rel[0] = np.log(abs(q_rel[0])) * np.sign(q_rel[0])
+            log_q_rel[1:] = q_rel[1:] / np.sqrt(1 - q_rel[0] ** 2) * angle
+            orientation_error = np.linalg.norm(log_q_rel[1:])
+        return orientation_error
+
+    # def orientation_error(R1, R2):
+    #     log_R = scipy.linalg.logm(np.dot(np.transpose(R1), R2))
+
+    #     # Calculate the geodesic distance as the Frobenius norm of the matrix logarithm
+    #     distance = np.linalg.norm(log_R)
+
+    #     return distance
 
     def predict(self, control_input):
         # control_input is the constant control velocities
@@ -94,9 +120,21 @@ class ParticleFilterSE3:
             particle = self.particles[i]
             # log map of dot product between particle's pose and the inverse of the measurement pose from CNN
             # log map gives us twist in se(3) which is subsequently converted to 6x1 twist coordinates
-            error = self.se3_to_twistcrd(scipy.linalg.logm(np.dot(self.invSE3(particle.pose()),measurement)))
-            
-            self.weights[i] *= multivariate_normal.pdf(error.ravel(), mean = np.zeros(6), cov = covariance)
+            # error = self.se3_to_twistcrd(scipy.linalg.logm(np.dot(self.invSE3(particle.pose()),measurement)))
+            pre_err = np.dot( np.transpose(particle.pose()[:3,:3]), measurement[:3,:3] ) - np.eye(3)
+            # pre_err = particle.pose()[:3,:3] - measurement[:3,:3]
+            R_err = np.linalg.norm(pre_err,  ord='fro')
+            t_err = particle.pose()[:3,3] - measurement[:3,3]
+            # # this returns a scalar rotation error which is calculated using quaternions to try and avoid singularity issues 
+            # R_err = np.array([self.orientation_error( (particle.pose()[:3,:3]) , (measurement[:3,:3]) )])
+            error = np.vstack((R_err,t_err.reshape(3,1)))
+
+            R_cov = covariance[3,3]**2 + covariance[4,4]**2 + covariance[5,5]**2
+            t_cov = np.diag(covariance[3:,3:])
+            quat_cov_vec = np.vstack((R_cov,t_cov.reshape(3,1)))
+            quat_cov = np.diag( quat_cov_vec.reshape(4,) )
+            # print(quat_cov)
+            self.weights[i] *= multivariate_normal.pdf(error.ravel(), mean = np.zeros(4), cov = quat_cov)
 
         # Normalize the weights and compute the effective sample size
         self.weights /= np.sum(self.weights)
@@ -179,12 +217,22 @@ class ParticleFilterSE3:
     def mean_variance(self):
 
         #preallocate twist coord array
-        twists = np.zeros((6,self.num_particles))
+        twists = np.zeros((6,int(self.num_particles/10)))
 
         # populate twist coord array
-        for i in range(self.num_particles):
+        for i in range(int(self.num_particles/10)):
             # calculate the 6x1 twist coordinate value and add it to the twist coordinate array
-            twists[:,i] = self.se3_to_twistcrd(scipy.linalg.logm(self.particles[i].pose())).reshape(6,)
+            omega = self.rot_vec(self.particles[i].rotation)
+            v = self.particles[i].position
+            
+            v = np.array([  [v[0]] , [v[1]] , [v[2]]  ])
+            omega = np.array([  [omega[0]] , [omega[1]] , [omega[2]]  ])
+
+            twists[:,i] = np.vstack(( v, omega )).reshape(6,)
+            # twists[:,i] = self.se3_to_twistcrd(scipy.linalg.logm(self.particles[i].pose())).reshape(6,)
+
+        
+
         # calculate the mean of all the 6x1 twist coordiantes
         X = np.mean(twists, axis=1)
         #initiating values
@@ -195,7 +243,7 @@ class ParticleFilterSE3:
         sinSum5 = 0
         cosSum5 = 0
         
-        for s in range(self.num_particles):
+        for s in range(int(self.num_particles/10)):
             # could alternatively index from the twists array
             twist = twists[:,s].copy()
             #twist = self.se3_to_twistcrd(scipy.linalg.logm(self.particles[s].pose()))
@@ -214,17 +262,17 @@ class ParticleFilterSE3:
         X[5] = np.arctan2(sinSum5, cosSum5)
         
         # preallocating array for covariance calculation
-        zero_mean = np.zeros((6,self.num_particles))
+        zero_mean = np.zeros((6,int(self.num_particles/10)))
 
         # morer random stuff taken from maani's code
-        for s in range(self.num_particles):
+        for s in range(int(self.num_particles/10)):
 
             zero_mean[:,s] = twists[:,s] - X
             zero_mean[3,s] = self.wrapToPi(zero_mean[3,s])
             zero_mean[4,s] = self.wrapToPi(zero_mean[4,s])
             zero_mean[5,s] = self.wrapToPi(zero_mean[5,s])
         
-        state_cov = zero_mean @ zero_mean.T / self.num_particles
+        state_cov = zero_mean @ zero_mean.T / int(self.num_particles/10)
         
         # geodesic mean --> consider ?
         state_mean = X.copy()
