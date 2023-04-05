@@ -9,7 +9,7 @@ class SE3:
 
     def pose(self):
         # Return the pose
-        pose = [[self.rotation, self.position.T],[0, 0, 0, 1]]
+        pose = np.row_stack((np.column_stack((self.rotation, self.position.T)),[0, 0, 0, 1]))
         return pose
 
 
@@ -31,12 +31,13 @@ def read(fileName):
             covariance[4,4:6] = np.array([float(line[28]),float(line[29])])
             covariance[5,5:6] = np.array([float(line[30])])
             covariance += covariance.T - np.diag(covariance.diagonal())
-            measurements.append(SE3(position, rotation))
+            measurements.append(SE3(position, rotation).pose())
 
-        line = contents[1663].split()
-        print(measurements[1].pose())
-        print(position)
-        print(covariance)
+        # line = contents[1663].split()
+        # print(measurements[1].pose())
+        # print(position)
+        # print(covariance)
+        return measurements, covariance
 
 def main():
     read('parking-garage.g2o')

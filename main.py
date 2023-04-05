@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import time
 from scipy.spatial.transform import Rotation
+import read
 
 def plot_errors(errors):
     """
@@ -122,7 +123,7 @@ def plot_particle_weights(particle_weights):
     ax.set_title('Histogram of Particle Weights')
     plt.show()
 
-def main(CNN_data, truth): #CNN_data should be input eventually
+def main(CNN_data, CNN_covariances, truth): #CNN_data should be input eventually
     # Final lists to store posterior poses
     states = []
     covariances = []
@@ -130,7 +131,8 @@ def main(CNN_data, truth): #CNN_data should be input eventually
     poses_CNN = CNN_data.copy()
     #poses_CNN = Particle_Filter.SE3()
     # covariance associated with the measurements
-    covariance_CNN = np.eye(6)*0.5
+    covariance_CNN = CNN_covariances.copy()
+    # covariance_CNN = np.eye(6)*0.5
 
     numParticles = 200
     
@@ -147,7 +149,9 @@ def main(CNN_data, truth): #CNN_data should be input eventually
         
         # random walk motion model
         # random_walk = np.array([0.5,0.5,1,0.5,0,0])
-        random_walk = np.array([0.25, 0.2, .75, 0.01, 0.03, 0.03])
+        # random_walk = np.array([0.25, 0.2, .75, 0.01, 0.03, 0.03])
+        random_walk = np.array([0.0 , 0.0 , 0.0 , 0.0, 0.0, 0.0])
+
         
         
         n_eff = pf.update(poses_CNN[i], covariance_CNN)
@@ -205,10 +209,10 @@ if __name__ == '__main__':
     #     v[i] += np.random.normal(loc=0., scale=0.1) 
     #     omega[i] += np.random.normal(loc=0., scale=0.1) 
     # another set of testing control velocities
-    # v = np.array([0.25, 0.2, 0])
-    # omega = np.array([0, 0, 0.025])
-    v = np.array([0.5, 0.5, 0.5])
-    omega = np.array([0.5, 0, 0])
+    v = np.array([0, 0, 0])
+    omega = np.array([0, 0, 0])
+    # v = np.array([0.5, 0.5, 0.5])
+    # omega = np.array([0.5, 0, 0])
 
     # another set of test velocities:
 
@@ -257,7 +261,9 @@ if __name__ == '__main__':
     # these are the posterior mean and variances produced by the particle filter. states are 6x1 twist coordinate vectors
     # and covariances are 6x1 variances associated with each variable. covariance one might need to change due to cross
     # covariance, but i'm not sure.
-    states, covariances = main(noisy_data, poses)
+    parking_measurements, parking_covariances = read.read('parking-garage.g2o')
+    states, covariances = main(parking_measurements, parking_covariances, poses)
+    # states, covariances = main(noisy_data, poses)
     # # for state in states:
     #     print(state)
 
@@ -265,29 +271,29 @@ if __name__ == '__main__':
     for pose in states:
         state_SE3 = so3toSO3(twist_to_se3(pose))
         viz_data.append(state_SE3)
-    visualize(noisy_data, "noise")
+    visualize(parking_measurements, "noise")
     visualize(viz_data, "filtered")
-    visualize(poses, "truth")
+    # visualize(poses, "truth")
 
-    i = 0
-    errors = []
-    for pose in poses:
-        error = se3_to_twistcrd( scipy.linalg.logm ( np.dot( np.linalg.inv(pose.copy()) , viz_data[i].copy() ) ) )
-        errors.append(np.linalg.norm(error))
-        i += 1
-    # plot_errors(errors)
-    print("PF Avg Error: ")
-    print(sum(errors)/len(errors))
+    # i = 0
+    # errors = []
+    # for pose in poses:
+    #     error = se3_to_twistcrd( scipy.linalg.logm ( np.dot( np.linalg.inv(pose.copy()) , viz_data[i].copy() ) ) )
+    #     errors.append(np.linalg.norm(error))
+    #     i += 1
+    # # plot_errors(errors)
+    # print("PF Avg Error: ")
+    # print(sum(errors)/len(errors))
     
-    i = 0
-    errors = []
-    for pose in poses:
-        error = se3_to_twistcrd( scipy.linalg.logm ( np.dot( np.linalg.inv(pose.copy()) , noisy_data[i].copy() ) ) )
-        errors.append(np.linalg.norm(error))
-        i += 1
-    # plot_errors(errors)
-    print("noise Avg Error: ")
-    print(sum(errors)/len(errors))  
+    # i = 0
+    # errors = []
+    # for pose in poses:
+    #     error = se3_to_twistcrd( scipy.linalg.logm ( np.dot( np.linalg.inv(pose.copy()) , noisy_data[i].copy() ) ) )
+    #     errors.append(np.linalg.norm(error))
+    #     i += 1
+    # # plot_errors(errors)
+    # print("noise Avg Error: ")
+    # print(sum(errors)/len(errors))  
     # theta = np.pi+0.1  # 180 degrees in radians
 
     # R1 = np.array(

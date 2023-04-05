@@ -88,7 +88,7 @@ class ParticleFilterSE3:
             # make the motion model "semi-random"
             control_input = init_ctrl.copy()
             for i in range(6):
-                control_input[i] += np.random.normal(loc=0., scale=0.75) 
+                control_input[i] += np.random.normal(loc=0., scale=1) 
 
             # first we want to calculate the "delta" transformation matrix induced by 
             # the constant control input
