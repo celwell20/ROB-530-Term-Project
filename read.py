@@ -39,8 +39,24 @@ def read(fileName):
         # print(covariance)
         return measurements, covariance
 
+def readThis(fileName):
+    measurements = []
+    with open(fileName,'r') as file:
+        contents = file.readlines()
+        for content in contents:
+            line = content.split()
+            position = np.array([float(line[3]),float(line[7]),float(line[11])])
+            rotation = np.array([[float(line[0]), float(line[1]) , float(line[2])] ,
+                              [float(line[4]),float(line[5]),float(line[6])],
+                              [float(line[8]),float(line[9]),float(line[10])]])
+            measurements.append(SE3(position, rotation).pose())
+    return measurements
+        # print(contents[0])
+
 def main():
-    read('parking-garage.g2o')
+    # read('parking-garage.g2o')
+    measurements = readThis('output.txt')
+    return
 
 if __name__ == '__main__':
     main()
