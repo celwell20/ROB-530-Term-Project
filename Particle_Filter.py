@@ -78,7 +78,7 @@ class ParticleFilterSE3:
 
     def predict(self, control_input):
         # control_input is the constant control velocities
-        dt = 0.2
+        dt = 1
         new_particles = []
         # To apply the motion model we want to loop thru the particles and apply the
         # same constant control input to each particle
@@ -88,7 +88,7 @@ class ParticleFilterSE3:
             # make the motion model "semi-random"
             control_input = init_ctrl.copy()
             for i in range(6):
-                control_input[i] += np.random.normal(loc=0., scale=1) 
+                control_input[i] += np.random.normal(loc=0., scale=3.5) 
 
             # first we want to calculate the "delta" transformation matrix induced by 
             # the constant control input
@@ -107,12 +107,6 @@ class ParticleFilterSE3:
         # we then copy new_particles to self.particles to ensure there are no silly referencing
         # issues that can be oh-so frustrating to debug
         self.particles = new_particles.copy()
-
-        ## PREVIOUS MOTION MODEL PREDICTION CODE
-            # new_pose = SE3(position=pose.position.copy(), rotation=pose.rotation.copy())
-            # new_pose.position += control_input[:3] * dt
-            # new_pose.rotation = new_pose.rotation @ self.rotation_matrix(control_input[3:]*dt)
-
     
     def update(self, measurement, covariance):
         # Loop through all the particles and compute their weigths based on their vicinity to the measurment
@@ -138,21 +132,6 @@ class ParticleFilterSE3:
 
         # Normalize the weights and compute the effective sample size
         self.weights /= np.sum(self.weights)
-
-        # temp_particles, temp_weights = self.sort_objects(self.particles, self.weights)
-        # idx = int(self.num_particles/10)
-
-        # better_weights = temp_weights[0:idx]
-        # better_particles = temp_particles[0:idx]
-
-        # for i in range(len(better_particles)):
-        #     better_weights[i] /= np.sum(better_weights)
-    
-        # self.particles = better_particles.copy()
-        # self.weights = better_weights.copy()
-
-        # revinvigorate particles after taking highest weighted particles in update step
-        # self.reinvigorate()
 
         n_eff = 1 / np.sum(self.weights**2)
 
@@ -222,11 +201,12 @@ class ParticleFilterSE3:
         # populate twist coord array
         for i in range(self.num_particles):
             # calculate the 6x1 twist coordinate value and add it to the twist coordinate array
-            omega = self.rot_vec(self.particles[i].rotation)
+            # omega = self.rot_vec(self.particles[i].rotation)
+            omega = scipy.linalg.logm(self.particles[i].rotation)
             v = self.particles[i].position
             
             v = np.array([  [v[0]] , [v[1]] , [v[2]]  ])
-            omega = np.array([  [omega[0]] , [omega[1]] , [omega[2]]  ])
+            omega = np.array( [ [omega[2,1]] , [omega[0,2]] , [omega[1,0]] ] )
 
             twists[:,i] = np.vstack(( v, omega )).reshape(6,)
             # twists[:,i] = self.se3_to_twistcrd(scipy.linalg.logm(self.particles[i].pose())).reshape(6,)
