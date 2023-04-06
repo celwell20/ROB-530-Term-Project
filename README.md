@@ -1,3 +1,5 @@
+#ChatGPT wrote this template, so it might have some errors!
+
 # SE(3) Particle Filter for Monocular Camera CNN Pose Estimates
 
 This is the readme file for a term project titled "SE(3) Particle Filter for Monocular Camera CNN Pose Estimates". The purpose of this project is to explore the application of a particle filter to improve the accuracy of CNN pose estimates for a monocular camera.
