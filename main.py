@@ -113,7 +113,8 @@ def se3_to_twistcrd(twist):
 
 def so3toSO3(twist):
     # converts an element of so(3) to an element of SO(3)
-
+    # REVISE TITLE BECAUES THIS IS ACTUALLY se(3)  TO SE(3)
+    # confirm if this is valid
     R = scipy.linalg.expm(twist[:3,:3])
     t = twist[:3,3]
     SE3 = np.row_stack((np.column_stack((R, t.reshape(3,).copy())),[0, 0, 0, 1]))
@@ -129,13 +130,18 @@ def plot_particle_weights(particle_weights):
 
 def error_calc(state, truth):
     # calculate the error for a given state from the truth
-
+    # chordal distance
+    # R^T*R - I(3x3)
     pre_err = np.dot( np.transpose(truth[:3,:3]), state[:3,:3] ) - np.eye(3)
     # pre_err = particle.pose()[:3,:3] - measurement[:3,:3]
     R_err = np.linalg.norm(pre_err,  ord='fro')
     t_err = truth[:3,3] - state[:3,3]
+
+    # COULD REVISE THIS TO HAVE THE NORM OF THE TRANSLATION ERROR OCCUR HERE
+
     # # this returns a scalar rotation error which is calculated using quaternions to try and avoid singularity issues 
     # R_err = np.array([self.orientation_error( (particle.pose()[:3,:3]) , (measurement[:3,:3]) )])
+
     error = np.vstack((R_err,t_err.reshape(3,1)))
     return error, R_err, t_err
 
@@ -156,7 +162,7 @@ def main(CNN_data, CNN_covariances, truth): #CNN_data should be input eventually
     pf = Particle_Filter.ParticleFilterSE3(numParticles, initPose) # initialize particle filter object with initial pose
     # plt_bool = True
     
-    for i in range(int(len(poses_CNN)/4)):
+    for i in range(int(len(poses_CNN)/6)):
         # this is an array of the constant velocities we are using to predict the motion of the robot
         #pf.predict(np.array([0.5,0.5,1,0.5,0,0]))
 
@@ -167,7 +173,7 @@ def main(CNN_data, CNN_covariances, truth): #CNN_data should be input eventually
         # random_walk = np.array([0.5,0.5,1,0.5,0,0])
         # random_walk = np.array([0.25, 0.2, .75, 0.01, 0.03, 0.03])
         random_walk = np.array([0.0 , 0.0 , 0.0 , 0.0, 0.0, 0.0])
-
+        pf.predict(random_walk)
         n_eff = pf.update(poses_CNN[i], covariance_CNN)
         # _ = pf.update(poses_CNN[i], covariance_CNN)
         
@@ -182,7 +188,7 @@ def main(CNN_data, CNN_covariances, truth): #CNN_data should be input eventually
         #     poo = 5
 
         state, cov = pf.mean_variance()
-        pf.predict(random_walk)
+        
 
         ## PARTICLE PLOTTING CODE AND COMPARISON OF STATE ESTIMATE AND TRUTH
         # if i == 64:
@@ -275,7 +281,30 @@ if __name__ == '__main__':
     # and covariances are 6x1 variances associated with each variable. covariance one might need to change due to cross
     # covariance, but i'm not sure.
     parking_measurements = read.readThis('output.txt')
-    states, covariances = main(parking_measurements, np.eye(6)*0.1, poses)
+    noise_park = []
+    for pose in parking_measurements:
+          # Extract the rotational and translational components of the poses
+        R = pose[:3, :3]
+        t = pose[:3, 3]
+        
+        # Generate white noise for the rotational and translational components
+        # Adjst the scale term to increase the noise of the measurements
+        #R_noise = np.random.normal(scale=0.25, size=R.shape)
+        # Change the translation noise here "scale = noise"
+        t_noise = np.random.normal(scale=2, size=t.shape)
+        
+         # Add the noise to the original components
+        R_hat = np.array([[0, -R[2, 1], R[1, 0]], [R[2, 1], 0, -R[0, 2]], [-R[1, 0], R[0, 2], 0]])
+
+        # Change noise values here in np.sin(noise) and np.cos(noise)
+        R_noisy = R @ (np.eye(3) + np.sin(2) * R_hat + (1 - np.cos(2)) * R_hat @ R_hat)
+        t_noisy = t + t_noise
+        
+        # Combine the noisy rotational and translational components into poses
+        noise_park.append(np.row_stack((np.column_stack((R_noisy, t_noisy)),[0, 0, 0, 1])))
+        i += 1
+
+    states, covariances = main(noise_park, np.eye(6)*2, poses)
     # states, covariances = main(noisy_data, np.eye(6)*0.5, poses)
     # # # for state in states:
     # #     print(state)
@@ -285,10 +314,10 @@ if __name__ == '__main__':
         state_SE3 = so3toSO3(twist_to_se3(pose))
         viz_data.append(state_SE3)
     # visualize(noisy_data, "noise")
-    visualize(parking_measurements[:int(len(parking_measurements)/4)], "noise")
+    visualize(noise_park[:int(len(parking_measurements)/6)], "noise")
 
     visualize(viz_data, "filtered")
-    # visualize(parking_measurements, "none")
+    visualize(parking_measurements, "none")
     # visualize(poses, "truth")
 
     # i = 0

@@ -50,23 +50,23 @@ class ParticleFilterSE3:
         inv = np.row_stack((np.column_stack( ( np.transpose(R), np.dot(-np.transpose(R),p) ) ),[0, 0, 0, 1]))
         return inv
     
-    def orientation_error(self, T1, T2):
-        q1 = mat2quat(T1[0:3, 0:3])
-        q2 = mat2quat(T2[0:3, 0:3])
-        q_rel = qmult(qinverse(q1), q2)
-        angle = 2 * np.arccos(abs(q_rel[0]))
+    # def orientation_error(self, T1, T2):
+    #     q1 = mat2quat(T1[0:3, 0:3])
+    #     q2 = mat2quat(T2[0:3, 0:3])
+    #     q_rel = qmult(qinverse(q1), q2)
+    #     angle = 2 * np.arccos(abs(q_rel[0]))
 
-        if angle > np.pi:
-            angle = 2 * np.pi - angle
+    #     if angle > np.pi:
+    #         angle = 2 * np.pi - angle
 
-        if angle < 1e-12:
-            orientation_error = 0
-        else:
-            log_q_rel = np.zeros(4)
-            log_q_rel[0] = np.log(abs(q_rel[0])) * np.sign(q_rel[0])
-            log_q_rel[1:] = q_rel[1:] / np.sqrt(1 - q_rel[0] ** 2) * angle
-            orientation_error = np.linalg.norm(log_q_rel[1:])
-        return orientation_error
+    #     if angle < 1e-12:
+    #         orientation_error = 0
+    #     else:
+    #         log_q_rel = np.zeros(4)
+    #         log_q_rel[0] = np.log(abs(q_rel[0])) * np.sign(q_rel[0])
+    #         log_q_rel[1:] = q_rel[1:] / np.sqrt(1 - q_rel[0] ** 2) * angle
+    #         orientation_error = np.linalg.norm(log_q_rel[1:])
+    #     return orientation_error
 
     # def orientation_error(R1, R2):
     #     log_R = scipy.linalg.logm(np.dot(np.transpose(R1), R2))
@@ -88,6 +88,7 @@ class ParticleFilterSE3:
             # make the motion model "semi-random"
             control_input = init_ctrl.copy()
             for i in range(6):
+                # GET RID OF THIS AND ADD RANDOMNESS IN PARTICLES INITIALIZATION AND USE NP.RNADOM.UNIFORM NOT NP.RANDOM.NORMAL
                 control_input[i] += np.random.normal(loc=0., scale=3.5) 
 
             # first we want to calculate the "delta" transformation matrix induced by 
@@ -166,19 +167,6 @@ class ParticleFilterSE3:
         new_particles = []
         new_weights = np.zeros_like(self.weights)
         
-        ## ChatGPT Resampling Algorithm:
-        ## It seems like the algorithm should resample based on the weights,
-        ## so if we can't implement a resampling algorithm of our own, then 
-        ## this one should work
-
-        # Sample particles with replacement based on their weights
-        # indices = np.random.choice(self.num_particles, size=self.num_particles, replace=True, p=self.weights)
-        # for i in indices:
-        #     new_particles.append(self.particles[i])
-        # self.particles = new_particles
-        # self.weights = np.ones(self.num_particles) / self.num_particles
-
-        
         W = np.cumsum(self.weights)
         r = np.random.rand(1) / self.num_particles
         count = 0
@@ -210,8 +198,6 @@ class ParticleFilterSE3:
 
             twists[:,i] = np.vstack(( v, omega )).reshape(6,)
             # twists[:,i] = self.se3_to_twistcrd(scipy.linalg.logm(self.particles[i].pose())).reshape(6,)
-
-        
 
         # calculate the mean of all the 6x1 twist coordiantes
         X = np.mean(twists, axis=1)
