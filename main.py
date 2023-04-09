@@ -73,8 +73,66 @@ def visualize(states, title_string):
         plt.title("Particle Filter Estimate")
     elif title_string == "noise":
         plt.title("Noisy Data")
+    elif title_string == "fused":
+        plt.title("Fused CNN Data")
+    elif title_string == "unfused":
+        plt.title("Unfused CNN Data")
 
     ax.set_zlim3d(min_lim, max_lim)
+    plt.show()    
+
+def overlay_plots2(states1, states2, title_string):
+    # states estimated by the particle filters
+    # true data without any noise from "measurements"
+    positions1 = np.array([s[:3, 3] for s in states1])
+    positions2 = np.array([s[:3, 3] for s in states2])
+    
+    #truth_pos = np.array([s[:3, 3] for s in truth])
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    #plot the points
+    ax.scatter(positions1[:, 0], positions1[:, 1], positions1[:, 2], c='r', s=1)
+    ax.scatter(positions2[:, 0], positions2[:, 1], positions2[:, 2], c='b', s=1)
+
+    # if title_string == "truth" or title_string == "filtered":
+    # add lines to connect the points ; change alpha param to change color darkness
+    ax.plot(positions1[:, 0], positions1[:, 1], positions1[:, 2], c='r', alpha=0.2)
+    ax.plot(positions2[:, 0], positions2[:, 2], positions2[:, 2], c='b', alpha=0.2)       
+
+    #ax.scatter(truth_pos[:, 0], truth_pos[:, 1], truth_pos[:, 2], c='k', s=1)
+    # crdFrame_idx = 0
+    # for p in states:
+
+    #     if crdFrame_idx % 5 == 0:
+    #         x, y, z = p[:3, 3]
+    #         R = p[:3, :3]
+    #         scale = 0.5
+    #         ax.plot([x, x + scale * R[0, 0]], [y, y + scale * R[1, 0]], [z, z + scale * R[2, 0]], c='r')
+    #         ax.plot([x, x + scale * R[0, 1]], [y, y + scale * R[1, 1]], [z, z + scale * R[2, 1]], c='g')
+    #         ax.plot([x, x + scale * R[0, 2]], [y, y + scale * R[1, 2]], [z, z + scale * R[2, 2]], c='b')
+        
+    #     crdFrame_idx += 1
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    # min_lim = np.min(positions) - 1
+    # max_lim = np.max(positions) + 1
+    # ax.set_xlim3d(min_lim, max_lim)
+    # ax.set_ylim3d(min_lim, max_lim)
+
+    if title_string == "truth":
+        plt.title("Ground Truth")
+    elif title_string == "filtered":
+        plt.title("Particle Filter Estimate")
+    elif title_string == "noise":
+        plt.title("Noisy Data")
+    elif title_string == "fused":
+        plt.title("Fused CNN Data")
+    elif title_string == "unfused":
+        plt.title("Unfused CNN Data")
+
+    # ax.set_zlim3d(min_lim, max_lim)
     plt.show()    
 
 def twist_to_se3(twist):
@@ -261,19 +319,25 @@ if __name__ == '__main__':
     # these are the posterior mean and variances produced by the particle filter. states are 6x1 twist coordinate vectors
     # and covariances are 6x1 variances associated with each variable. covariance one might need to change due to cross
     # covariance, but i'm not sure.
-    states, covariances = main(noise_park, np.eye(6)*3, poses)
-    # states, covariances = main(noisy_data, np.eye(6)*0.5, poses)
+    gndTruth_CNN = np.load(file='trajectory_gt.npy')
+    unfused_CNN = np.load(file='trajectory_unfused.npy')
+    fused_CNN = np.load(file='trajectory_fused.npy')
+
+    states, covariances = main(fused_CNN, np.eye(6)*0.05, poses)
 
     viz_data = []
     for pose in states:
         state_SE3 = so3toSO3(twist_to_se3(pose))
         viz_data.append(state_SE3)
-    # visualize(noisy_data, "noise")
-    visualize(noise_park[:int(len(parking_measurements)/20)], "noise")
 
-    visualize(viz_data, "filtered")
-    visualize(parking_measurements[:int(len(parking_measurements)/20)], "none")
-    # visualize(poses, "truth")
+
+    ## NOTE: string optiosn for visualize() include: "filtered", "fused", "unfused", "truth", "noise"
+    ## specififying an arbitrary string will produce no title for the plot
+    overlay_plots2(viz_data,fused_CNN,"none")
+    # visualize(viz_data, "filtered")
+    # visualize(fused_CNN, "fused")
+    # visualize(unfused_CNN, "unfused")
+    # visualize(gndTruth_CNN, "truth")
 
     # i = 0
     # errors = []
