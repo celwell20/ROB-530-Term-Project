@@ -162,7 +162,7 @@ def main(CNN_data, CNN_covariances, truth): #CNN_data should be input eventually
     pf = Particle_Filter.ParticleFilterSE3(numParticles, initPose) # initialize particle filter object with initial pose
     # plt_bool = True
     
-    for i in range(int(len(poses_CNN)/6)):
+    for i in range(int(len(poses_CNN)/20)):
         # this is an array of the constant velocities we are using to predict the motion of the robot
         #pf.predict(np.array([0.5,0.5,1,0.5,0,0]))
 
@@ -314,7 +314,7 @@ if __name__ == '__main__':
         state_SE3 = so3toSO3(twist_to_se3(pose))
         viz_data.append(state_SE3)
     # visualize(noisy_data, "noise")
-    visualize(noise_park[:int(len(parking_measurements)/6)], "noise")
+    visualize(noise_park[:int(len(parking_measurements)/20)], "noise")
 
     visualize(viz_data, "filtered")
     visualize(parking_measurements, "none")

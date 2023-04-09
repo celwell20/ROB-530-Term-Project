@@ -40,8 +40,34 @@ class ParticleFilterSE3:
     def __init__(self, num_particles, initial_pose):
 
         self.num_particles = num_particles
-        self.particles = [SE3(position=initial_pose.position.copy(), rotation=initial_pose.rotation.copy()) for _ in range(num_particles)]
+        self.particles = self.init_particles(initial_pose)
         self.weights = np.ones(num_particles) / num_particles
+
+    def init_particles(self, initPose):
+        
+        init_particles = []
+
+        for _ in range(self.num_particles):
+
+            # init_prop = np.array([0. , 0. , 0. , 0. , 0. , 0.])
+            # for i in range(6):
+            control_input = np.random.uniform(0.,5., size=(6,))
+            dt = 1
+            # first we want to calculate the "delta" transformation matrix induced by 
+            # the constant control input
+            dT = np.eye(4)
+            dT[:3, 3] = control_input[:3] * dt
+            r = self.rotation_matrix(control_input[3:]*dt)
+            dT[:3, :3] = r.copy()
+            # then we want to apply this dT to each particle, 
+            # pose.pose() calls a function to return the 4x4 homoegenous transformation
+            # that represents the SE(3) pose
+            new_pose = np.dot(initPose.pose(), dT)
+            # and append these updated SE(3) object particles to the list "new_particles"
+            # Use copy to ensure there is no memory address confusion on Python's end
+            init_particles.append(SE3(position=new_pose[:3,3].copy(), rotation=new_pose[:3,:3].copy()))
+
+        return init_particles
 
     def invSE3(self, pose):
         # Closed form inverse solution for a pose in SE(3)
@@ -49,32 +75,6 @@ class ParticleFilterSE3:
         p = pose[:3,3]
         inv = np.row_stack((np.column_stack( ( np.transpose(R), np.dot(-np.transpose(R),p) ) ),[0, 0, 0, 1]))
         return inv
-    
-    # def orientation_error(self, T1, T2):
-    #     q1 = mat2quat(T1[0:3, 0:3])
-    #     q2 = mat2quat(T2[0:3, 0:3])
-    #     q_rel = qmult(qinverse(q1), q2)
-    #     angle = 2 * np.arccos(abs(q_rel[0]))
-
-    #     if angle > np.pi:
-    #         angle = 2 * np.pi - angle
-
-    #     if angle < 1e-12:
-    #         orientation_error = 0
-    #     else:
-    #         log_q_rel = np.zeros(4)
-    #         log_q_rel[0] = np.log(abs(q_rel[0])) * np.sign(q_rel[0])
-    #         log_q_rel[1:] = q_rel[1:] / np.sqrt(1 - q_rel[0] ** 2) * angle
-    #         orientation_error = np.linalg.norm(log_q_rel[1:])
-    #     return orientation_error
-
-    # def orientation_error(R1, R2):
-    #     log_R = scipy.linalg.logm(np.dot(np.transpose(R1), R2))
-
-    #     # Calculate the geodesic distance as the Frobenius norm of the matrix logarithm
-    #     distance = np.linalg.norm(log_R)
-
-    #     return distance
 
     def predict(self, control_input):
         # control_input is the constant control velocities
@@ -137,30 +137,6 @@ class ParticleFilterSE3:
         n_eff = 1 / np.sum(self.weights**2)
 
         return n_eff
-    
-    def reinvigorate(self):
-    # """
-    # Reinvigorates the particles by randomly selecting them according to their weights.
-
-    # Args:
-    # particles (list): a list of particles
-    # weights (list): a list of weights corresponding to each particle
-
-    # Returns:
-    # list: a list of particles that have been reinvigorated
-    # """
-
-        # Normalize the weights to sum to 1
-        weights_sum = np.sum(self.weights)
-        normalized_weights = [weight/weights_sum for weight in self.weights]
-
-        # Sample new particles according to the normalized weights
-        new_particles = np.random.choice(self.particles, size=self.num_particles, replace=True, p=normalized_weights)
-        new_particle_weights = np.array([self.weights[self.particles.index(particle)] for particle in new_particles])
-
-        self.weights = new_particle_weights.copy()
-        self.particles = new_particles.copy().tolist()
-
         
     def resample(self):
         # Initiate the resampled set
