@@ -125,9 +125,9 @@ def overlay_plots3(states1, states2, states3, label1, label2, label3):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     #plot the points
-    ax.scatter(positions1[:, 0], positions1[:, 1], positions1[:, 2], c='r', s=1, label=label1)
+    ax.scatter(positions1[:, 0], positions1[:, 1], positions1[:, 2], c='m', s=1, label=label1)
 
-    ax.plot(positions1[:, 0], positions1[:, 1], positions1[:, 2], c='r', alpha=0.2)
+    ax.plot(positions1[:, 0], positions1[:, 1], positions1[:, 2], c='m', alpha=0.2)
 
     ax.scatter(positions2[:, 0], positions2[:, 1], positions2[:, 2], c='b', s=1, label=label2)
     
@@ -221,7 +221,7 @@ def error_calc(state, truth):
     error = np.vstack((R_err,t_err.reshape(3,1)))
     return error, R_err, t_err
 
-def main(CNN_data, CNN_covariances, truth): #CNN_data should be input eventually
+def main(CNN_data, CNN_covariances, init_pose): #CNN_data should be input eventually
     # Final lists to store posterior poses
     states = []
     covariances = []
@@ -232,11 +232,11 @@ def main(CNN_data, CNN_covariances, truth): #CNN_data should be input eventually
 
     numParticles = 200
     
-    initPose = Particle_Filter.SE3() # initialize at origin aligned with inertial ref. frame
+    initPose = Particle_Filter.SE3(init_pose[:3,3], init_pose[:3,:3]) # initialize at origin aligned with inertial ref. frame
     pf = Particle_Filter.ParticleFilterSE3(numParticles, initPose) # initialize particle filter object with initial pose
     # plt_bool = True
     
-    for i in range(int(len(poses_CNN)/20)):
+    for i in range(len(poses_CNN)):
         # this is an array of the velocities we are using to predict the motion of the robot
         random_walk = np.array([0.0 , 0.0 , 0.0 , 0.0, 0.0, 0.0])
         pf.predict(random_walk)
@@ -343,18 +343,19 @@ if __name__ == '__main__':
     gndTruth_CNN = np.load(file='trajectory_gt.npy')
     unfused_CNN = np.load(file='trajectory_unfused.npy')
     fused_CNN = np.load(file='trajectory_fused.npy')
+    
+    init_pose = unfused_CNN[0]
+    states, covariances = main(unfused_CNN, np.eye(6)*0.5, init_pose)
 
-    # states, covariances = main(unfused_CNN, np.eye(6)*0.05, poses)
+    viz_data = []
+    for pose in states:
+        state_SE3 = so3toSO3(twist_to_se3(pose))
+        viz_data.append(state_SE3)
 
-    # viz_data = []
-    # for pose in states:
-    #     state_SE3 = so3toSO3(twist_to_se3(pose))
-    #     viz_data.append(state_SE3)
-
-
+    asdf = 5
     ## NOTE: string optiosn for visualize() include: "filtered", "fused", "unfused", "truth", "noise"
     ## specififying an arbitrary string will produce no title for the plot
-    overlay_plots3(unfused_CNN,gndTruth_CNN,fused_CNN, "unfused", "gnd trth", "fused")
+    overlay_plots3(unfused_CNN,gndTruth_CNN,viz_data, "unfused", "gnd trth", "PF")
     # visualize(viz_data, "filtered")
     # visualize(fused_CNN, "fused")
     # visualize(unfused_CNN, "unfused")

@@ -46,7 +46,7 @@ class ParticleFilterSE3:
             
             # UNIFORM DISTRO WILL HAVE BOUNDS CORRESPONDING TO THE GEOMETRY OF THE ENVIRONMENT? (XYZ)
             # FOR ANGLE INPUTS HAVE BOUNDS BE BETWEEN 0 AND 2PI
-            control_input = np.random.uniform(0.,5., size=(6,))
+            control_input = np.random.uniform(0.,0.5, size=(6,))
             dt = 1
             # first we want to calculate the "delta" transformation matrix induced by 
             # the constant control input
@@ -85,7 +85,7 @@ class ParticleFilterSE3:
             for i in range(6):
                 # GET RID OF THIS AND ADD RANDOMNESS IN PARTICLES INITIALIZATION AND USE NP.RNADOM.UNIFORM NOT NP.RANDOM.NORMAL
                 # RANDOM WALK FOR NON-CONSTANT VELOCITY MODELS, AND CONSTANT CNTRL INPUT FOR CONST VEL MODEL
-                control_input[i] += np.random.normal(loc=0., scale=3.5) 
+                control_input[i] += np.random.normal(loc=0., scale=0.5) 
 
             # first we want to calculate the "delta" transformation matrix induced by 
             # the constant control input
