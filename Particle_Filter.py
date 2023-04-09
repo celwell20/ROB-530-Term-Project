@@ -7,12 +7,7 @@ from transforms3d.quaternions import mat2quat, qmult, qinverse
 class SE3:
     def __init__(self, position=np.zeros(3), rotation=np.eye(3)):
         # Construct an SE(3) object based on a provided rotation matrix and position vector.
-        # if other:  
-        #     self.position = other.position
-        #     self.rotation = other.rotation
-        # else:
-        #     self.position = position
-        #     self.rotation = rotation
+        
         self.position = position
         self.rotation = rotation
 
@@ -23,7 +18,7 @@ class SE3:
     
     def se3_to_twistcrd(self):
         # go from little se(3) to twist coordinates (6x1)
-        # call the functionthat is elsewhere
+        
         twist = self.pose()
         # Convert from a member of little se(3) to a
         # 6x1 twist coordinate [v;w]
@@ -48,9 +43,9 @@ class ParticleFilterSE3:
         init_particles = []
 
         for _ in range(self.num_particles):
-
-            # init_prop = np.array([0. , 0. , 0. , 0. , 0. , 0.])
-            # for i in range(6):
+            
+            # UNIFORM DISTRO WILL HAVE BOUNDS CORRESPONDING TO THE GEOMETRY OF THE ENVIRONMENT? (XYZ)
+            # FOR ANGLE INPUTS HAVE BOUNDS BE BETWEEN 0 AND 2PI
             control_input = np.random.uniform(0.,5., size=(6,))
             dt = 1
             # first we want to calculate the "delta" transformation matrix induced by 
@@ -89,6 +84,7 @@ class ParticleFilterSE3:
             control_input = init_ctrl.copy()
             for i in range(6):
                 # GET RID OF THIS AND ADD RANDOMNESS IN PARTICLES INITIALIZATION AND USE NP.RNADOM.UNIFORM NOT NP.RANDOM.NORMAL
+                # RANDOM WALK FOR NON-CONSTANT VELOCITY MODELS, AND CONSTANT CNTRL INPUT FOR CONST VEL MODEL
                 control_input[i] += np.random.normal(loc=0., scale=3.5) 
 
             # first we want to calculate the "delta" transformation matrix induced by 
@@ -115,13 +111,10 @@ class ParticleFilterSE3:
             particle = self.particles[i]
             # log map of dot product between particle's pose and the inverse of the measurement pose from CNN
             # log map gives us twist in se(3) which is subsequently converted to 6x1 twist coordinates
-            # error = self.se3_to_twistcrd(scipy.linalg.logm(np.dot(self.invSE3(particle.pose()),measurement)))
             pre_err = np.dot( np.transpose(particle.pose()[:3,:3]), measurement[:3,:3] ) - np.eye(3)
             # pre_err = particle.pose()[:3,:3] - measurement[:3,:3]
             R_err = np.linalg.norm(pre_err,  ord='fro')
             t_err = particle.pose()[:3,3] - measurement[:3,3]
-            # # this returns a scalar rotation error which is calculated using quaternions to try and avoid singularity issues 
-            # R_err = np.array([self.orientation_error( (particle.pose()[:3,:3]) , (measurement[:3,:3]) )])
             error = np.vstack((R_err,t_err.reshape(3,1)))
 
             R_cov = covariance[3,3]**2 + covariance[4,4]**2 + covariance[5,5]**2
@@ -151,7 +144,6 @@ class ParticleFilterSE3:
             while u > W[count]:
                 count += 1
             # check to make sure there is not a referencing issue here
-            # new_particles.append(SE3(other=self.particles[count]))
             new_particles.append(self.particles[count])
             new_weights[j] = 1 / self.num_particles
         self.particles = new_particles.copy()
@@ -165,7 +157,6 @@ class ParticleFilterSE3:
         # populate twist coord array
         for i in range(self.num_particles):
             # calculate the 6x1 twist coordinate value and add it to the twist coordinate array
-            # omega = self.rot_vec(self.particles[i].rotation)
             omega = scipy.linalg.logm(self.particles[i].rotation)
             v = self.particles[i].position
             
@@ -173,7 +164,6 @@ class ParticleFilterSE3:
             omega = np.array( [ [omega[2,1]] , [omega[0,2]] , [omega[1,0]] ] )
 
             twists[:,i] = np.vstack(( v, omega )).reshape(6,)
-            # twists[:,i] = self.se3_to_twistcrd(scipy.linalg.logm(self.particles[i].pose())).reshape(6,)
 
         # calculate the mean of all the 6x1 twist coordiantes
         X = np.mean(twists, axis=1)

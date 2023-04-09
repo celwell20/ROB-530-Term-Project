@@ -38,9 +38,11 @@ def visualize(states, title_string):
     #truth_pos = np.array([s[:3, 3] for s in truth])
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
+    #plot the points
     ax.scatter(positions[:, 0], positions[:, 1], positions[:, 2], c='r', s=1)
 
     # if title_string == "truth" or title_string == "filtered":
+    # add lines to connect the points ; change alpha param to change color darkness
     ax.plot(positions[:, 0], positions[:, 1], positions[:, 2], c='r', alpha=0.2)    
 
     #ax.scatter(truth_pos[:, 0], truth_pos[:, 1], truth_pos[:, 2], c='k', s=1)
@@ -94,7 +96,6 @@ def twist_to_se3(twist):
     w_hat = np.array([[0, -w[2], w[1]], [w[2], 0, -w[0]], [-w[1], w[0], 0]])
     
     # Construct the 4x4 twist matrix in se(3)
-    # twist_se3 = np.row_stack((np.column_stack((w_hat, v)),[0, 0, 0, 0]))
     twist_se3 = np.row_stack((np.column_stack((w_hat, v.reshape(3,))),[0, 0, 0, 0]))
     
     return twist_se3
@@ -133,14 +134,10 @@ def error_calc(state, truth):
     # chordal distance
     # R^T*R - I(3x3)
     pre_err = np.dot( np.transpose(truth[:3,:3]), state[:3,:3] ) - np.eye(3)
-    # pre_err = particle.pose()[:3,:3] - measurement[:3,:3]
     R_err = np.linalg.norm(pre_err,  ord='fro')
     t_err = truth[:3,3] - state[:3,3]
 
     # COULD REVISE THIS TO HAVE THE NORM OF THE TRANSLATION ERROR OCCUR HERE
-
-    # # this returns a scalar rotation error which is calculated using quaternions to try and avoid singularity issues 
-    # R_err = np.array([self.orientation_error( (particle.pose()[:3,:3]) , (measurement[:3,:3]) )])
 
     error = np.vstack((R_err,t_err.reshape(3,1)))
     return error, R_err, t_err
@@ -151,69 +148,41 @@ def main(CNN_data, CNN_covariances, truth): #CNN_data should be input eventually
     covariances = []
     # Need to get data containing the measurements from the CNN
     poses_CNN = CNN_data.copy()
-    #poses_CNN = Particle_Filter.SE3()
     # covariance associated with the measurements
     covariance_CNN = CNN_covariances.copy()
-    # covariance_CNN = np.eye(6)*0.5
 
-    numParticles = 500
+    numParticles = 200
     
     initPose = Particle_Filter.SE3() # initialize at origin aligned with inertial ref. frame
     pf = Particle_Filter.ParticleFilterSE3(numParticles, initPose) # initialize particle filter object with initial pose
     # plt_bool = True
     
     for i in range(int(len(poses_CNN)/20)):
-        # this is an array of the constant velocities we are using to predict the motion of the robot
-        #pf.predict(np.array([0.5,0.5,1,0.5,0,0]))
-
-        # another set of motion model velocities for testing; should probaboly update code to have this be an input parameter in main
-        # pf.predict(np.array([0.25, 0.2, 1, 0.01, 0.02, 0.03]))
-        
-        # random walk motion model
-        # random_walk = np.array([0.5,0.5,1,0.5,0,0])
-        # random_walk = np.array([0.25, 0.2, .75, 0.01, 0.03, 0.03])
+        # this is an array of the velocities we are using to predict the motion of the robot
         random_walk = np.array([0.0 , 0.0 , 0.0 , 0.0, 0.0, 0.0])
         pf.predict(random_walk)
         n_eff = pf.update(poses_CNN[i], covariance_CNN)
         # _ = pf.update(poses_CNN[i], covariance_CNN)
         
-        # update the measured pose as if it were moving with the constant velocity model (x-axis velocity only)
-        #poses_CNN.position[1] += 1
-        
         if n_eff < numParticles/3:
             pf.resample()
 
-        # # pf.reinvigorate()
         # if i == 64:
-        #     poo = 5
+        #     brkpoint = 0 ## breakpoint debugging code 
 
         state, cov = pf.mean_variance()
         
-
-        ## PARTICLE PLOTTING CODE AND COMPARISON OF STATE ESTIMATE AND TRUTH
+        ## PARTICLE PLOTTING CODE AND COMPARISON OF STATE ESTIMATE AND TRUTH FOR VERIFICATION AND DEBUGGING
         # if i == 64:
             # visualize([pose.pose() for pose in pf.particles] , 'none')
             # visualize( [so3toSO3(twist_to_se3(state)), truth[i] ], 'none' )
             # error = se3_to_twistcrd( scipy.linalg.logm ( np.dot( scipy.linalg.expm(twist_to_se3(state)) , truth[i].copy()) ) ) 
             # print(np.linalg.norm(error))
             # print(twist_to_se3(state))
+        ###
 
         states.append(state)
         covariances.append(cov)
-
-        # error = np.linalg.norm(state - se3_to_twistcrd( scipy.linalg.logm ( truth[i] ) ) )
-        # state_SE3 = scipy.linalg.expm(twist_to_se3(state))
-        # error = se3_to_twistcrd( scipy.linalg.logm ( np.dot( np.linalg.inv(state_SE3.copy()) , truth[i].copy() ) ) )
-        
-        ## HISTOGRAM PLOTTING CODE
-        # if np.linalg.norm(error) > 2 and j < 5:
-        #     print(i)
-        #     plot_particle_weights(pf.weights)
-        #     # plt_bool = False
-        #     j += 1
-        # elif i == 20:
-        #     plot_particle_weights(pf.weights)
-
 
     return states, covariances
 
@@ -221,19 +190,9 @@ if __name__ == '__main__':
     #states, covariances = main()
     # Define the initial pose
     T0 = np.eye(4)
-
-    # Define the velocity in the x, y, z directions and the angular velocity
-    # v = np.array([0.15, 0.5, 1])
-    # omega = np.array([0.25, 0.25, 0.25])
-    # for i in range(3):
-    #     v[i] += np.random.normal(loc=0., scale=0.1) 
-    #     omega[i] += np.random.normal(loc=0., scale=0.1) 
-    # another set of testing control velocities
    
     v = np.array([0.5, 0.5, 0.5])
     omega = np.array([0, 0, 0.5])
-
-    # another set of test velocities:
 
     # Define the time interval and the number of steps
     dt = 0.15
@@ -265,7 +224,6 @@ if __name__ == '__main__':
         
         # Generate white noise for the rotational and translational components
         # Adjst the scale term to increase the noise of the measurements
-        #R_noise = np.random.normal(scale=0.25, size=R.shape)
         t_noise = np.random.normal(scale=0.5, size=t.shape)
         
          # Add the noise to the original components
@@ -277,9 +235,6 @@ if __name__ == '__main__':
         noisy_data[i] = np.row_stack((np.column_stack((R_noisy, t_noisy)),[0, 0, 0, 1]))
         i += 1
     
-    # these are the posterior mean and variances produced by the particle filter. states are 6x1 twist coordinate vectors
-    # and covariances are 6x1 variances associated with each variable. covariance one might need to change due to cross
-    # covariance, but i'm not sure.
     parking_measurements = read.readThis('output.txt')
     noise_park = []
     for pose in parking_measurements:
@@ -289,25 +244,25 @@ if __name__ == '__main__':
         
         # Generate white noise for the rotational and translational components
         # Adjst the scale term to increase the noise of the measurements
-        #R_noise = np.random.normal(scale=0.25, size=R.shape)
         # Change the translation noise here "scale = noise"
-        t_noise = np.random.normal(scale=2, size=t.shape)
+        t_noise = np.random.normal(scale=3, size=t.shape)
         
          # Add the noise to the original components
         R_hat = np.array([[0, -R[2, 1], R[1, 0]], [R[2, 1], 0, -R[0, 2]], [-R[1, 0], R[0, 2], 0]])
 
         # Change noise values here in np.sin(noise) and np.cos(noise)
-        R_noisy = R @ (np.eye(3) + np.sin(2) * R_hat + (1 - np.cos(2)) * R_hat @ R_hat)
+        R_noisy = R @ (np.eye(3) + np.sin(3) * R_hat + (1 - np.cos(3)) * R_hat @ R_hat)
         t_noisy = t + t_noise
         
         # Combine the noisy rotational and translational components into poses
         noise_park.append(np.row_stack((np.column_stack((R_noisy, t_noisy)),[0, 0, 0, 1])))
         i += 1
 
-    states, covariances = main(noise_park, np.eye(6)*2, poses)
+    # these are the posterior mean and variances produced by the particle filter. states are 6x1 twist coordinate vectors
+    # and covariances are 6x1 variances associated with each variable. covariance one might need to change due to cross
+    # covariance, but i'm not sure.
+    states, covariances = main(noise_park, np.eye(6)*3, poses)
     # states, covariances = main(noisy_data, np.eye(6)*0.5, poses)
-    # # # for state in states:
-    # #     print(state)
 
     viz_data = []
     for pose in states:
@@ -317,7 +272,7 @@ if __name__ == '__main__':
     visualize(noise_park[:int(len(parking_measurements)/20)], "noise")
 
     visualize(viz_data, "filtered")
-    visualize(parking_measurements, "none")
+    visualize(parking_measurements[:int(len(parking_measurements)/20)], "none")
     # visualize(poses, "truth")
 
     # i = 0
@@ -362,32 +317,3 @@ if __name__ == '__main__':
     
     # print("PF t Error: " + sum(t_errs)/len(t_errs))
     # print(" ")
-
-    # theta = np.pi+0.1  # 180 degrees in radians
-
-    # R1 = np.array(
-    #     [[1,           0,            0, 0.1],
-    #     [0, np.cos(theta), -np.sin(theta), 0.5],
-    #     [0, np.sin(theta),  np.cos(theta), 0.1],
-    #     [0,           0,            0, 1]
-    # ])
-    # theta = np.pi  # 180 degrees in radians
-
-    # R2 = np.array(
-    #     [[1,           0,            0, 0.1],
-    #     [0, np.cos(theta), -np.sin(theta), -0.225],
-    #     [0, np.sin(theta),  np.cos(theta), 0.5],
-    #     [0,           0,            0, 1]
-    # ])
-    # # shit = 5
-    # visualize([R1,R2], 'none')
-    # error = se3_to_twistcrd( scipy.linalg.logm ( np.dot( np.linalg.inv(R1) , R2 ) ) ) 
-    # print(np.linalg.norm(error))
-    # # j = 0
-    # for pose in poses:
-    #     #printing ground truth data
-    #     time.sleep(0.25)
-    #     print(pose.astype(int))
-        #printing particle filter data
-        # print(viz_data[j])
-        # j += 1
