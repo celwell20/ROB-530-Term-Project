@@ -7,6 +7,44 @@ import time
 from scipy.spatial.transform import Rotation
 import read
 
+def plot_mitl_errors(multi_errors,title):
+     # Create a list of indices from 0 to the length of the errors list
+    indices = range(len(multi_errors[0,:]))
+    print(indices)
+
+    # Create a plot with the indices on the x-axis and the errors on the y-axis
+    plt.figure()
+    ax = plt.axes()
+    ax.plot(indices, multi_errors[0,:],label="PF error")
+    ax.plot(indices, multi_errors[1,:],label="fused error")
+    # ax.plot(indices, multi_errors[2,:],label="true error")
+    ax.legend()
+    # Set the title and labels for the plot
+    plt.title(title)
+    plt.xlabel('Index')
+    plt.ylabel('Error')
+
+    # Show the plot
+    plt.show()
+
+#visualize results between PF and fuse
+def plot_different_errors(viz_data,fused_CNN,gndTruth_CNN):
+        all_R_error = np.zeros((3,len(viz_data)))
+        all_t_error = np.zeros((3,len(viz_data)))
+        for i in range(len(viz_data)):
+            [PF_error, PF_R_err, PF_t_err] = error_calc(viz_data[i],gndTruth_CNN[i])
+            all_R_error[0,i] = PF_R_err
+            all_t_error[0,i] = PF_t_err
+            [fused_error, fused_R_err, fused_t_err] = error_calc(fused_CNN[i],gndTruth_CNN[i])
+            all_R_error[1,i] = fused_R_err
+            all_t_error[1,i] = fused_t_err
+            # [unfuse_error, unfuse_R_err, unfuse_t_err] = error_calc(unfused_CNN[i],gndTruth_CNN[i])
+            # all_R_error[2,i] = unfuse_R_err
+            # all_t_error[2,i] = unfuse_t_err
+
+        plot_mitl_errors(all_R_error,'rotation error')
+        plot_mitl_errors(all_t_error,'translation error')
+
 def plot_errors(errors):
     """
     Plots a list of errors versus its indices.
@@ -20,6 +58,7 @@ def plot_errors(errors):
     # Create a list of indices from 0 to the length of the errors list
     indices = range(len(errors))
 
+    
     # Create a plot with the indices on the x-axis and the errors on the y-axis
     plt.plot(indices, errors)
 
@@ -219,6 +258,7 @@ def error_calc(state, truth):
     # COULD REVISE THIS TO HAVE THE NORM OF THE TRANSLATION ERROR OCCUR HERE
 
     error = np.vstack((R_err,t_err.reshape(3,1)))
+    t_err = np.linalg.norm(t_err)
     return error, R_err, t_err
 
 def main(CNN_data, CNN_covariances, init_pose): #CNN_data should be input eventually
@@ -337,21 +377,32 @@ if __name__ == '__main__':
         noise_park.append(np.row_stack((np.column_stack((R_noisy, t_noisy)),[0, 0, 0, 1])))
         i += 1
 
-    # these are the posterior mean and variances produced by the particle filter. states are 6x1 twist coordinate vectors
-    # and covariances are 6x1 variances associated with each variable. covariance one might need to change due to cross
-    # covariance, but i'm not sure.
+    # 
     gndTruth_CNN = np.load(file='trajectory_gt.npy')
     unfused_CNN = np.load(file='trajectory_unfused.npy')
     fused_CNN = np.load(file='trajectory_fused.npy')
     
     init_pose = unfused_CNN[0]
-    states, covariances = main(unfused_CNN, np.eye(6)*0.5, init_pose)
-
+    states, covariances = main(fused_CNN, np.eye(6)*0.5, init_pose)
+    # these are the posterior mean and variances produced by the particle filter. states are 6x1 twist coordinate vectors
+    # and covariances are 6x1 variances associated with each variable. covariance one might need to change due to cross
+    # covariance, but i'm not sure.
     viz_data = []
+    #viz_data[0] 4x4
+    #for pose_4_4 in viz_data:
     for pose in states:
         state_SE3 = so3toSO3(twist_to_se3(pose))
         viz_data.append(state_SE3)
 
+    #error for PF, fused, unfused
+    plot_different_errors(viz_data,fused_CNN,gndTruth_CNN)
+    
+
+    
+    
+
+    # print("gndtrue",gndTruth_CNN[0])
+    # print("unfused",unfused_CNN[0])
     asdf = 5
     ## NOTE: string optiosn for visualize() include: "filtered", "fused", "unfused", "truth", "noise"
     ## specififying an arbitrary string will produce no title for the plot
