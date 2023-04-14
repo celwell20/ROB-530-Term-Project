@@ -120,12 +120,12 @@ if __name__ == '__main__':
         i += 1
 
     # 
-    # gndTruth_CNN = np.load(file='trajectory_gt.npy')
-    # unfused_CNN = np.load(file='trajectory_unfused.npy')
-    # fused_CNN = np.load(file='trajectory_fused.npy')
-    gndTruth_CNN = np.load(file='trajectory_gt_improved.npy')
-    unfused_CNN = np.load(file='trajectory_unfused_improved.npy')
-    fused_CNN = np.load(file='trajectory_fused_improved.npy')
+    # gndTruth_CNN = np.load(file='data/trajectory_gt.npy')
+    # unfused_CNN = np.load(file='data/trajectory_unfused.npy')
+    # fused_CNN = np.load(file='data/trajectory_fused.npy')
+    gndTruth_CNN = np.load(file='data/trajectory_gt_improved.npy')
+    unfused_CNN = np.load(file='data/trajectory_unfused_improved.npy')
+    fused_CNN = np.load(file='data/trajectory_fused_improved.npy')
     
     init_pose = unfused_CNN[0]
     states, covariances = main(fused_CNN, np.eye(6)*0.5, init_pose)
