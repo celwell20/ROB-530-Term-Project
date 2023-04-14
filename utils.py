@@ -56,6 +56,6 @@ def error_calc(state, truth):
     t_err = np.linalg.norm(t_err)
 
     # Stack the errors
-    error = np.vstack((R_err,t_err.reshape(3,1)))
+    error = np.vstack((R_err,t_err))
     
     return error, R_err, t_err

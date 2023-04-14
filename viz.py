@@ -1,10 +1,10 @@
-import scipy
-
 import numpy as np
 import matplotlib.pyplot as plt
 
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial.transform import Rotation
+
+from utils import error_calc
 
 def visualize(states, title_string):
     # states estimated by the particle filters

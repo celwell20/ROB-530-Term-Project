@@ -33,7 +33,7 @@ def main(CNN_data, update_cov, init_pose, control=[np.zeros((1,6))]):
     for i in range(len(poses)):
 
         # Read the current control input and use it to perform the prediction step
-        current_input = control[i]
+        current_input = np.array([0.0 , 0.0 , 0.0 , 0.0, 0.0, 0.0])#control[i]
         pf.predict(current_input)
         
         # Propagate the prediction with the particle filter
