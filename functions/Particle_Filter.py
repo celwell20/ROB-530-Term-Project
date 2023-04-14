@@ -14,10 +14,11 @@ class SE3:
     def pose(self):
         # Return the pose
         pose = np.row_stack((np.column_stack((self.rotation, self.position.T)),[0, 0, 0, 1]))
+
         return pose
     
     def se3_to_twistcrd(self):
-        # go from little se(3) to twist coordinates (6x1)
+        # Transform se(3) to twist coordinates (6x1)
         
         twist = self.pose()
         # Convert from a member of little se(3) to a
@@ -72,15 +73,16 @@ class ParticleFilterSE3:
         return inv
 
     def predict(self, control_input):
-        # control_input is the constant control velocities
+        """Use the know control input to propagate the particles forward"""
+
         dt = 1
         new_particles = []
-        # To apply the motion model we want to loop thru the particles and apply the
-        # same constant control input to each particle
+
+        # To apply the motion model we want to loop through the particles and apply the same constant control input to each particle
         init_ctrl = control_input.copy()
         for pose in self.particles:
 
-            # make the motion model "semi-random"
+            # Make the motion model "semi-random"
             control_input = init_ctrl.copy()
             for i in range(6):
                 # GET RID OF THIS AND ADD RANDOMNESS IN PARTICLES INITIALIZATION AND USE NP.RNADOM.UNIFORM NOT NP.RANDOM.NORMAL
