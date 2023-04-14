@@ -80,10 +80,10 @@ class ParticleFilterSE3:
 
             # Make the motion model "semi-random"
             control_input = init_ctrl.copy()
-            # for i in range(6):
-            #     # GET RID OF THIS AND ADD RANDOMNESS IN PARTICLES INITIALIZATION AND USE NP.RNADOM.UNIFORM NOT NP.RANDOM.NORMAL
-            #     # RANDOM WALK FOR NON-CONSTANT VELOCITY MODELS, AND CONSTANT CNTRL INPUT FOR CONST VEL MODEL
-            #     control_input[i] += np.random.normal(loc=0., scale=0.5) 
+            for i in range(6):
+                # GET RID OF THIS AND ADD RANDOMNESS IN PARTICLES INITIALIZATION AND USE NP.RNADOM.UNIFORM NOT NP.RANDOM.NORMAL
+                # RANDOM WALK FOR NON-CONSTANT VELOCITY MODELS, AND CONSTANT CNTRL INPUT FOR CONST VEL MODEL
+                control_input[i] += np.random.normal(loc=0., scale=0.5) 
 
             # first we want to calculate the "delta" transformation matrix induced by 
             # the constant control input
