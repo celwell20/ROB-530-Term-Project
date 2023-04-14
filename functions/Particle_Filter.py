@@ -71,19 +71,19 @@ class ParticleFilterSE3:
     def predict(self, control_input):
         """Use the known control input to propagate the particles forward"""
 
+        # Initialise variables
         dt = 1
         new_particles = []
 
-        # To apply the motion model we want to loop through the particles and apply the same constant control input to each particle
+        # Loop through the particles and apply the control input to each
         init_ctrl = control_input.copy()
         for pose in self.particles:
 
-            # Make the motion model "semi-random"
             control_input = init_ctrl.copy()
             for i in range(6):
-                # GET RID OF THIS AND ADD RANDOMNESS IN PARTICLES INITIALIZATION AND USE NP.RNADOM.UNIFORM NOT NP.RANDOM.NORMAL
-                # RANDOM WALK FOR NON-CONSTANT VELOCITY MODELS, AND CONSTANT CNTRL INPUT FOR CONST VEL MODEL
-                control_input[i] += np.random.normal(loc=0., scale=0.5) 
+                # Assume the motion model is not perfect, and add some noise to the particles
+                control_input[i] += np.random.normal(0, abs(control_input[i])*0.05) 
+
 
             # first we want to calculate the "delta" transformation matrix induced by 
             # the constant control input
