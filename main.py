@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial.transform import Rotation
 
-import Particle_Filter
-import read
-from utils import twist_to_se3, se3_to_twistcrd, se3toSE3, error_calc
-from viz import plot_mitl_errors, plot_different_errors, plot_errors, overlay_plots2, overlay_plots3, plot_particle_weights, visualize
+import functions.Particle_Filter as Particle_Filter
+import functions.read as read
+from functions.utils import twist_to_se3, se3_to_twistcrd, se3toSE3, error_calc
+from functions.viz import plot_mitl_errors, plot_different_errors, plot_errors, overlay_plots2, overlay_plots3, plot_particle_weights, visualize
 
 def main(CNN_data, update_cov, init_pose, control=[np.zeros((1,6))]):
     """Run the Particle Filter through a series of estimates, given the control inputs"""
