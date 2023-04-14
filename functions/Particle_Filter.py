@@ -19,14 +19,10 @@ class SE3:
     
     def se3_to_twistcrd(self):
         # Transform se(3) to twist coordinates (6x1)
-        
+
         twist = self.pose()
-        # Convert from a member of little se(3) to a
-        # 6x1 twist coordinate [v;w]
         omega = np.array([[twist[2,1]],[twist[0,2]],[twist[1,0]]])
-        
         vel = np.array([[twist[0,3]],[twist[1,3]],[twist[2,3]]])
-        
         twistcrd = np.vstack((vel,omega))
 
         return twistcrd
@@ -47,7 +43,7 @@ class ParticleFilterSE3:
             
             # UNIFORM DISTRO WILL HAVE BOUNDS CORRESPONDING TO THE GEOMETRY OF THE ENVIRONMENT? (XYZ)
             # FOR ANGLE INPUTS HAVE BOUNDS BE BETWEEN 0 AND 2PI
-            control_input = np.random.uniform(0.,0.5, size=(6,))
+            control_input = np.random.uniform(0, 0.5, size=(6,))
             dt = 1
             # first we want to calculate the "delta" transformation matrix induced by 
             # the constant control input
@@ -73,7 +69,7 @@ class ParticleFilterSE3:
         return inv
 
     def predict(self, control_input):
-        """Use the know control input to propagate the particles forward"""
+        """Use the known control input to propagate the particles forward"""
 
         dt = 1
         new_particles = []
@@ -84,10 +80,10 @@ class ParticleFilterSE3:
 
             # Make the motion model "semi-random"
             control_input = init_ctrl.copy()
-            for i in range(6):
-                # GET RID OF THIS AND ADD RANDOMNESS IN PARTICLES INITIALIZATION AND USE NP.RNADOM.UNIFORM NOT NP.RANDOM.NORMAL
-                # RANDOM WALK FOR NON-CONSTANT VELOCITY MODELS, AND CONSTANT CNTRL INPUT FOR CONST VEL MODEL
-                control_input[i] += np.random.normal(loc=0., scale=0.5) 
+            # for i in range(6):
+            #     # GET RID OF THIS AND ADD RANDOMNESS IN PARTICLES INITIALIZATION AND USE NP.RNADOM.UNIFORM NOT NP.RANDOM.NORMAL
+            #     # RANDOM WALK FOR NON-CONSTANT VELOCITY MODELS, AND CONSTANT CNTRL INPUT FOR CONST VEL MODEL
+            #     control_input[i] += np.random.normal(loc=0., scale=0.5) 
 
             # first we want to calculate the "delta" transformation matrix induced by 
             # the constant control input
@@ -120,7 +116,7 @@ class ParticleFilterSE3:
             error = np.vstack((R_err,t_err.reshape(3,1)))
 
             R_cov = covariance[3,3]**2 + covariance[4,4]**2 + covariance[5,5]**2
-            t_cov = np.diag(covariance[3:,3:])
+            t_cov = np.diag(covariance[:3,:3])
             quat_cov_vec = np.vstack((R_cov,t_cov.reshape(3,1)))
             quat_cov = np.diag( quat_cov_vec.reshape(4,) )
             # print(quat_cov)
@@ -208,8 +204,8 @@ class ParticleFilterSE3:
         
         state_cov = zero_mean @ zero_mean.T / self.num_particles
         
-        # geodesic mean --> consider ?
         state_mean = X.copy()
+
         return state_mean, state_cov
         
     @staticmethod
@@ -227,12 +223,15 @@ class ParticleFilterSE3:
             [sy*cp, sy*sp*sr + cy*cr, sy*sp*cr - cy*sr],
             [-sp, cp*sr, cp*cr]
         ])
+
         return rotation_matrix
     
     @staticmethod
     def rot_vec(R):
         # get the 3x1 rotation vector from the 3x3 rotation matrix
+
         r = Rotation.from_matrix(R)
+
         return r.as_rotvec()
     
     @staticmethod
@@ -241,9 +240,7 @@ class ParticleFilterSE3:
         # 6x1 twist coordinate [v;w]
 
         omega = np.array([[twist[2,1]],[twist[0,2]],[twist[1,0]]])
-        
         vel = np.array([[twist[0,3]],[twist[1,3]],[twist[2,3]]])
-        
         twistcrd = np.vstack((vel,omega))
 
         return twistcrd
@@ -251,6 +248,7 @@ class ParticleFilterSE3:
     @staticmethod
     def wrapToPi(angle):
         # Correct an angle for overflow beyond pi radians
+
         wrapped_angle = np.mod(angle + np.pi, 2*np.pi) - np.pi
 
         return wrapped_angle

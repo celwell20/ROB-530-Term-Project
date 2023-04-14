@@ -1,6 +1,14 @@
 import scipy
-import numpy as np
 
+import numpy as np
+from scipy.spatial.transform import Rotation
+
+def rot_vec(R):
+        # get the 3x1 rotation vector from the 3x3 rotation matrix
+
+        r = Rotation.from_matrix(R)
+
+        return r.as_rotvec()
 
 def twist_to_se3(twist):
     """

@@ -1,17 +1,13 @@
-import scipy
-
 import numpy as np
-import matplotlib.pyplot as plt
 
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial.transform import Rotation
 
 import functions.Particle_Filter as Particle_Filter
-import functions.read as read
-from functions.utils import twist_to_se3, se3_to_twistcrd, se3toSE3, error_calc
-from functions.viz import plot_compute_errors, plot_particle_weights, visualize, overlay_plots
+from functions.utils import twist_to_se3, se3toSE3, rot_vec
+from functions.viz import plot_compute_errors, overlay_plots
 
-def main(CNN_data, update_cov, init_pose, control=0):
+def main(CNN_data, update_cov, init_pose, control):
     """Run the Particle Filter through a series of estimates, given the control inputs"""
 
     # Final lists to store posterior poses
@@ -33,7 +29,7 @@ def main(CNN_data, update_cov, init_pose, control=0):
     for i in range(len(poses)):
 
         # Read the current control input and use it to perform the prediction step
-        current_input = np.array([0.0 , 0.0 , 0.0 , 0.0, 0.0, 0.0])#control[i]
+        current_input = control[i] #np.array([0.0 , 0.0 , 0.0 , 0.0, 0.0, 0.0]) 
         pf.predict(current_input)
         
         # Propagate the prediction with the particle filter
@@ -55,16 +51,28 @@ if __name__ == '__main__':
     gndTruth_CNN = np.load(file='data/trajectory_gt_default.npy')
     unfused_CNN = np.load(file='data/trajectory_unfused_default.npy')
     fused_CNN = np.load(file='data/trajectory_fused_default.npy')
-    # gndTruth_CNN = np.load(file='data/trajectory_gt_improved.npy')
-    # unfused_CNN = np.load(file='data/trajectory_unfused_improved.npy')
-    # fused_CNN = np.load(file='data/trajectory_fused_improved.npy')
     
     # Initialise the pose to the start point of the trajectory
-    init_pose = fused_CNN[0]
+    init_pose = gndTruth_CNN[0]
 
+    # Extract the control inputs from the ground truth data
+    #control=[]
+    control=[np.array([0.0 , 0.0 , 0.0 , 0.0, 0.0, 0.0])]
+    for i in range(1, len(gndTruth_CNN)):
+        prev_pose=gndTruth_CNN[i-1]
+        current_pose=gndTruth_CNN[i]
+
+        delta_pos=current_pose[:3,3]-prev_pose[:3,3]
+        delta_rot=rot_vec(np.transpose(prev_pose[:3,:3])@current_pose[:3,:3])
+
+        new_input=np.hstack((delta_rot.reshape((1,3)),delta_pos.reshape((1,3))))
+        control.append(new_input[0])
+
+    #control.append(np.array([0.0 , 0.0 , 0.0 , 0.0, 0.0, 0.0]))
     # Run the particle filter and produce the 6x1 variances associated with each variable
-    states, covariances = main(fused_CNN, np.eye(6)*0.5, init_pose)
-    # CPVARIANCE MIGHT NEED TO BE 6X6, NO?
+    pf_cov=np.diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
+    states, covariances = main(fused_CNN, pf_cov, init_pose, control)
+    # COVARIANCE MIGHT NEED TO BE 6X6, NO?
 
     # Extract the poses for plotting
     viz_data = []
