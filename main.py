@@ -70,7 +70,7 @@ if __name__ == '__main__':
     fused_CNN = np.load(file='data/trajectory_fused_default.npy')
     
     # Initialise the pose to the start point of the trajectory
-    init_pose = gndTruth_CNN[0]
+    init_pose = fused_CNN[0]
 
     # Extract the control inputs from the ground truth data
     #control=[]
@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
     ### TESTING ###
     # viz_data = [gndTruth_CNN[0]]
-    # for i in range(1, len(gndTruth_CNN)-1):
+    # for i in range(1, len(gndTruth_CNN)):
     #     prev_state=viz_data[i-1]
     #     prev_state_t=prev_state[:3,3]
     #     prev_state_r=prev_state[:3,:3]
