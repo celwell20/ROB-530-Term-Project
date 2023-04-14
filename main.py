@@ -17,7 +17,7 @@ def plot_mitl_errors(multi_errors,title):
     ax = plt.axes()
     ax.plot(indices, multi_errors[0,:],label="PF error")
     ax.plot(indices, multi_errors[1,:],label="fused error")
-    # ax.plot(indices, multi_errors[2,:],label="true error")
+    ax.plot(indices, multi_errors[2,:],label="unfused error")
     ax.legend()
     # Set the title and labels for the plot
     plt.title(title)
@@ -28,7 +28,7 @@ def plot_mitl_errors(multi_errors,title):
     plt.show()
 
 #visualize results between PF and fuse
-def plot_different_errors(viz_data,fused_CNN,gndTruth_CNN):
+def plot_different_errors(viz_data,fused_CNN,unfused_CNN,gndTruth_CNN):
         all_R_error = np.zeros((3,len(viz_data)))
         all_t_error = np.zeros((3,len(viz_data)))
         for i in range(len(viz_data)):
@@ -38,12 +38,18 @@ def plot_different_errors(viz_data,fused_CNN,gndTruth_CNN):
             [fused_error, fused_R_err, fused_t_err] = error_calc(fused_CNN[i],gndTruth_CNN[i])
             all_R_error[1,i] = fused_R_err
             all_t_error[1,i] = fused_t_err
-            # [unfuse_error, unfuse_R_err, unfuse_t_err] = error_calc(unfused_CNN[i],gndTruth_CNN[i])
-            # all_R_error[2,i] = unfuse_R_err
-            # all_t_error[2,i] = unfuse_t_err
+            [unfuse_error, unfuse_R_err, unfuse_t_err] = error_calc(unfused_CNN[i],gndTruth_CNN[i])
+            all_R_error[2,i] = unfuse_R_err
+            all_t_error[2,i] = unfuse_t_err
 
         plot_mitl_errors(all_R_error,'rotation error')
         plot_mitl_errors(all_t_error,'translation error')
+        mean_R = np.mean(all_R_error,axis=1)
+        mean_t = np.mean(all_t_error,axis=1)
+        var_R = np.mean(all_R_error ** 2,axis=1)
+        var_t = np.mean(all_t_error **2,axis=1)
+        return mean_R,mean_t,var_R,var_t
+        
 
 def plot_errors(errors):
     """
@@ -378,9 +384,12 @@ if __name__ == '__main__':
         i += 1
 
     # 
-    gndTruth_CNN = np.load(file='trajectory_gt.npy')
-    unfused_CNN = np.load(file='trajectory_unfused.npy')
-    fused_CNN = np.load(file='trajectory_fused.npy')
+    # gndTruth_CNN = np.load(file='trajectory_gt.npy')
+    # unfused_CNN = np.load(file='trajectory_unfused.npy')
+    # fused_CNN = np.load(file='trajectory_fused.npy')
+    gndTruth_CNN = np.load(file='trajectory_gt_improved.npy')
+    unfused_CNN = np.load(file='trajectory_unfused_improved.npy')
+    fused_CNN = np.load(file='trajectory_fused_improved.npy')
     
     init_pose = unfused_CNN[0]
     states, covariances = main(fused_CNN, np.eye(6)*0.5, init_pose)
@@ -395,7 +404,24 @@ if __name__ == '__main__':
         viz_data.append(state_SE3)
 
     #error for PF, fused, unfused
-    plot_different_errors(viz_data,fused_CNN,gndTruth_CNN)
+    [mean_R,mean_t,var_R,var_t] = plot_different_errors(viz_data=viz_data,fused_CNN=fused_CNN,unfused_CNN=unfused_CNN,gndTruth_CNN=gndTruth_CNN)
+    print("mean of error(Rotation)")
+    print("PF: ", mean_R[0])
+    print("fused: ",mean_R[1])
+    print("unfused: ",mean_R[2])
+    print("variance of error(Roatation)")
+    print("PF: ", var_R[0])
+    print("fused: ",var_R[1])
+    print("unfused: ",var_R[2])
+
+    print("mean of error(tanslation)")
+    print("PF: ", mean_t[0])
+    print("fused: ",mean_t[1])
+    print("unfused: ",mean_t[2])
+    print("variance of error(tanslation)")
+    print("PF: ", var_t[0])
+    print("fused: ",var_t[1])
+    print("unfused: ",var_t[2])
     
 
     
@@ -407,6 +433,7 @@ if __name__ == '__main__':
     ## NOTE: string optiosn for visualize() include: "filtered", "fused", "unfused", "truth", "noise"
     ## specififying an arbitrary string will produce no title for the plot
     overlay_plots3(unfused_CNN,gndTruth_CNN,viz_data, "unfused", "gnd trth", "PF")
+    overlay_plots3(unfused_CNN,gndTruth_CNN,fused_CNN, "unfused", "gnd trth", "fused_CNN")
     # visualize(viz_data, "filtered")
     # visualize(fused_CNN, "fused")
     # visualize(unfused_CNN, "unfused")
