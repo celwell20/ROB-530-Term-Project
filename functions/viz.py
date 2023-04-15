@@ -81,7 +81,7 @@ def plot_particle_weights(particle_weights):
     ax.set_title('Histogram of Particle Weights')
     plt.show()
 
-def plot_particles(particles, ground_truth):
+def plot_particles(particles, ground_truth, data, mean, weight):
     """Debugging Tool"""
     # Create the plots
     fig = plt.figure()
@@ -89,8 +89,11 @@ def plot_particles(particles, ground_truth):
 
     # Plot the ground truth and the particles
     ax.scatter(ground_truth[0, 3], ground_truth[1, 3], ground_truth[2, 3], c='b', s=20, label="Ground Truth")
-    for particle in particles:
-        ax.scatter(particle[0, 3], particle[1, 3], particle[2, 3], c='r', s=1, label="Particles")
+    ax.scatter(data[0, 3], data[1, 3], data[2, 3], c='g', s=20, label="Estimated Pose")
+    #ax.scatter(mean[0,3], mean[1,3], mean[2, 3], c='y', s=20, label="Mean of Particles")
+    ax.scatter(mean[0,], mean[1,], mean[2, ], c='y', s=20, label="Mean of Particles")
+    for ind, particle in enumerate(particles):
+        ax.scatter(particle[0, 3], particle[1, 3], particle[2, 3], c='r', s=weight[ind]*10, label="Particles")
 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')

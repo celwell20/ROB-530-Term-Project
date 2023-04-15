@@ -36,7 +36,7 @@ def main(CNN_data, update_cov, init_pose, control=0, gndTruth_CNN=0):
     covariance = update_cov.copy()
 
     # Set the number of particles
-    num_particles = 1000
+    num_particles = 200
     
     # Create an initial SE3 pose from the provided init_pose, and initialise the particle filter with it
     initialiser = Particle_Filter.SE3(init_pose[:3,3], init_pose[:3,:3])
@@ -50,8 +50,10 @@ def main(CNN_data, update_cov, init_pose, control=0, gndTruth_CNN=0):
         pf.predict(current_input)
         
         #print(gndTruth_CNN[i])
-        #particles=pf.return_particles()
-        #plot_particles(particles, gndTruth_CNN[i])
+        particles=pf.return_particles()
+        weigths=pf.return_weigths()
+        if i>0:
+            plot_particles(particles, gndTruth_CNN[i], fused_CNN[i], est_mean, weigths)
 
         # Propagate the prediction with the particle filter
         n_eff = pf.update(poses[i], covariance)
@@ -59,6 +61,7 @@ def main(CNN_data, update_cov, init_pose, control=0, gndTruth_CNN=0):
         # Check if re-sampling is needed
         if n_eff < num_particles/3:
             pf.resample()
+
 
         # Compute the mean and covariance of the 
         est_mean, est_cov = pf.mean_variance()
@@ -74,7 +77,7 @@ if __name__ == '__main__':
     fused_CNN = np.load(file='data/trajectory_fused_default.npy')
     
     # Initialise the pose to the start point of the trajectory
-    init_pose = np.eye(4) #gndTruth_CNN[0] 
+    init_pose = np.eye(4)  # gndTruth_CNN[0] # 
 
     # Extract the control inputs from the ground truth data
     #control=[]
@@ -99,6 +102,7 @@ if __name__ == '__main__':
     viz_data = []
     for pose in states:
         state_SE3 = se3toSE3(twist_to_se3(pose))
+        #state_SE3=pose
         viz_data.append(state_SE3)
 
     ### TESTING ###
