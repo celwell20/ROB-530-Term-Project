@@ -5,7 +5,7 @@ from scipy.spatial.transform import Rotation
 
 import functions.Particle_Filter as Particle_Filter
 from functions.utils import twist_to_se3, se3toSE3, rot_vec
-from functions.viz import plot_compute_errors, overlay_plots
+from functions.viz import plot_compute_errors, overlay_plots, plot_particles
 
 def rotation_matrix(rotation):
     # Compute the rotation 
@@ -24,7 +24,7 @@ def rotation_matrix(rotation):
 
     return rotation_matrix
 
-def main(CNN_data, update_cov, init_pose, control=0):
+def main(CNN_data, update_cov, init_pose, control=0, gndTruth_CNN=0):
     """Run the Particle Filter through a series of estimates, given the control inputs"""
 
     # Final lists to store posterior poses
@@ -36,7 +36,7 @@ def main(CNN_data, update_cov, init_pose, control=0):
     covariance = update_cov.copy()
 
     # Set the number of particles
-    num_particles = 200
+    num_particles = 1000
     
     # Create an initial SE3 pose from the provided init_pose, and initialise the particle filter with it
     initialiser = Particle_Filter.SE3(init_pose[:3,3], init_pose[:3,:3])
@@ -49,6 +49,10 @@ def main(CNN_data, update_cov, init_pose, control=0):
         current_input =control[i]   # np.array([0.0 , 0.0 , 0.0 , 0.0, 0.0, 0.0])
         pf.predict(current_input)
         
+        #print(gndTruth_CNN[i])
+        #particles=pf.return_particles()
+        #plot_particles(particles, gndTruth_CNN[i])
+
         # Propagate the prediction with the particle filter
         n_eff = pf.update(poses[i], covariance)
         
@@ -70,7 +74,7 @@ if __name__ == '__main__':
     fused_CNN = np.load(file='data/trajectory_fused_default.npy')
     
     # Initialise the pose to the start point of the trajectory
-    init_pose = fused_CNN[0]
+    init_pose = np.eye(4) #gndTruth_CNN[0] 
 
     # Extract the control inputs from the ground truth data
     #control=[]
@@ -88,7 +92,7 @@ if __name__ == '__main__':
     #control.append(np.array([0.0 , 0.0 , 0.0 , 0.0, 0.0, 0.0]))
     # Run the particle filter and produce the 6x1 variances associated with each variable
     pf_cov=np.diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
-    states, covariances = main(fused_CNN, pf_cov, init_pose, control)
+    states, covariances = main(fused_CNN, pf_cov, init_pose, control, gndTruth_CNN)
     # COVARIANCE MIGHT NEED TO BE 6X6, NO?
 
     # Extract the poses for plotting

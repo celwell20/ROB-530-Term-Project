@@ -80,3 +80,19 @@ def plot_particle_weights(particle_weights):
     ax.set_ylabel('Frequency')
     ax.set_title('Histogram of Particle Weights')
     plt.show()
+
+def plot_particles(particles, ground_truth):
+    """Debugging Tool"""
+    # Create the plots
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot the ground truth and the particles
+    ax.scatter(ground_truth[0, 3], ground_truth[1, 3], ground_truth[2, 3], c='b', s=20, label="Ground Truth")
+    for particle in particles:
+        ax.scatter(particle[0, 3], particle[1, 3], particle[2, 3], c='r', s=1, label="Particles")
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    plt.show()
