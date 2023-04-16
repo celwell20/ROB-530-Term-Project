@@ -44,17 +44,25 @@ class ParticleFilterSE3:
         for _ in range(self.num_particles):
             
             # Generate the control input
-            control_input = np.hstack((np.random.uniform(-2.5, 2.5, size=(3,)),np.random.uniform(-np.pi, np.pi, size=(3,))))
+            cntr_input = np.hstack((np.random.uniform(-0.25, 0.25, size=(3,)),np.random.uniform(-np.pi/4, np.pi/4, size=(3,))))
 
-            # Compute the "delta" transformation matrix induced by the constant control input
-            dT = np.eye(4)
-            dT[:3, 3] = control_input[:3]
-            r = self.rotation_matrix(control_input[3:])
-            dT[:3, :3] = r.copy()
+            # Copute the new position and rotation
+            new_pos=initPose.position+cntr_input[:3]
+            new_rot=initPose.rotation@rotation_matrix(cntr_input[3:])
+            
+            # Apply the transformation
+            init_particles.append(SE3(position=new_pos, rotation=new_rot))
 
-            # Apply the dT to the particles and append the result to the new particle list 
-            new_pose = np.dot(initPose.pose(), dT)
-            init_particles.append(SE3(position=new_pose[:3,3].copy(), rotation=new_pose[:3,:3].copy()))
+            # # Compute the "delta" transformation matrix induced by the constant control input
+            # dT = np.eye(4)
+            # dT[:3, 3] = control_input[:3]
+            # r = self.rotation_matrix(control_input[3:])
+            # dT[:3, :3] = r.copy()
+
+            # # Apply the dT to the particles and append the result to the new particle list 
+            # new_pose = np.dot(initPose.pose(), dT)
+            # init_particles.append(SE3(position=new_pose[:3,3].copy(), rotation=new_pose[:3,:3].copy()))
+
         # TESTING #
         # for _ in range(5):
         #     pos=np.array([1.3064, 0.1642, 1.7122])
@@ -126,7 +134,7 @@ class ParticleFilterSE3:
             particle_vect= se3_to_twistcrd(scipy.linalg.logm(particle.pose()))
             measurment_vect=se3_to_twistcrd(scipy.linalg.logm(measurement))
 
-            self.weights[i] = multivariate_normal.pdf( measurment_vect.ravel(), mean = particle_vect.ravel(), cov = covariance)
+            self.weights[i] *= multivariate_normal.pdf( measurment_vect.ravel(), mean = particle_vect.ravel(), cov = covariance)
 
             # R_cov = covariance[3,3]**2 + covariance[4,4]**2 + covariance[5,5]**2
             # t_cov = covariance[0,0]**2 + covariance[1,1]**2 + covariance[2,2]**2
@@ -175,6 +183,31 @@ class ParticleFilterSE3:
             new_weights[j] = 1 / self.num_particles
         self.particles = new_particles.copy()
         self.weights = new_weights.copy()
+
+    def new_resample(self):
+        new_particles = []
+        new_weights = np.zeros(self.num_particles)
+
+        # Compute the cumulative sum of weights
+        cum_sum_weights = np.cumsum(self.weights)
+
+        # Resample particles
+        for i in range(self.num_particles):
+            # Generate a random number between 0 and 1
+            random_num = np.random.uniform(0, 1)
+            # Find the index of the particle whose cumulative weight is closest to the random number
+            index = np.argmin(np.abs(cum_sum_weights - random_num))
+            # Add the selected particle to the new set of particles
+            new_particles.append(self.particles[index])
+            # Increment the weight of the selected particle
+            new_weights[index] += 1
+
+        # Normalize the weights
+        new_weights /= self.num_particles
+
+        self.particles = new_particles.copy()
+        self.weights = new_weights.copy()
+
 
     def mean_variance(self):
 

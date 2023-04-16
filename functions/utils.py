@@ -78,7 +78,7 @@ def error_calc(state, truth):
 
     # For the translational error, compute the delta and find the 2-norm
     t_err = truth[:3,3] - state[:3,3]
-    t_err = np.linalg.norm(t_err)
+    t_err = np.linalg.norm(t_err, ord=2)
 
     # Stack the errors
     error = np.vstack((t_err,R_err))
