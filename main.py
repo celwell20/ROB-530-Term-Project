@@ -88,7 +88,7 @@ if __name__ == '__main__':
         state_SE3 = se3toSE3(twist_to_se3(pose))
         #state_SE3=pose
         viz_data.append(state_SE3)
-    np.save("PF_Data.npy", viz_data)
+    np.save("PF_Data_X.npy", viz_data)
     ### TESTING ###
     # viz_data = [gndTruth_CNN[0]]
     # for i in range(1, len(gndTruth_CNN)):

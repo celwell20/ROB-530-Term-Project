@@ -63,7 +63,7 @@ def overlay_plots(states_list, label_list):
         lbl=label_list[indx]
         position=np.array([s[:3, 3] for s in sts])
         ax.scatter(position[:, 0], position[:, 1], position[:, 2], s=1, label=lbl)
-        ax.plot(position[:, 0], position[:, 1], position[:, 2], alpha=0.2)
+        ax.plot(position[:, 0], position[:, 1], position[:, 2], alpha=0.2)#,linewidth=1.5)
 
     ax.legend()
     ax.set_xlabel('X')
