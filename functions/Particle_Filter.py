@@ -3,6 +3,7 @@ import scipy
 from scipy.stats import multivariate_normal
 from scipy.spatial.transform import Rotation
 from transforms3d.quaternions import mat2quat, qmult, qinverse
+from functions.utils import se3_to_twistcrd, rotation_matrix
 
 class SE3:
     def __init__(self, position=np.zeros(3), rotation=np.eye(3)):
@@ -54,7 +55,13 @@ class ParticleFilterSE3:
             # Apply the dT to the particles and append the result to the new particle list 
             new_pose = np.dot(initPose.pose(), dT)
             init_particles.append(SE3(position=new_pose[:3,3].copy(), rotation=new_pose[:3,:3].copy()))
+        # TESTING #
+        # for _ in range(5):
+        #     pos=np.array([1.3064, 0.1642, 1.7122])
+        #     rot=np.array([[0.41846362,0.60511527,-0.67729145],[0.9080965,-0.26580651,0.32358561],[0.01577811,-0.7504548,-0.66073341]])
+        #     init_particles.append(SE3(position=pos, rotation=rot))
 
+        ###########
         return init_particles
 
     def invSE3(self, pose):
@@ -71,24 +78,29 @@ class ParticleFilterSE3:
         new_particles = []
 
         # Loop through the particles and apply the control input to each
-        init_ctrl = control_input.copy()
+        cntr_input = control_input.copy()
         for pose in self.particles:
 
-            control_input = init_ctrl.copy()
             for i in range(6):
                 # Assume the motion model is not perfect, and add some noise to the particles
-                control_input[i] += np.random.normal(0, abs(control_input[i])*0.05) 
+                cntr_input[i] += np.random.normal(0, abs(cntr_input[i])*0.05) 
 
+            # Copute the new position and rotation
+            new_pos=pose.position+cntr_input[:3]
+            new_rot=pose.rotation@rotation_matrix(cntr_input[3:])
+            
+            # Apply the transformation
+            new_particles.append(SE3(position=new_pos, rotation=new_rot))
 
-            # Compute the "delta" transformation matrix induced by the constant control input
-            dT = np.eye(4)
-            dT[:3, 3] = control_input[:3]
-            r = self.rotation_matrix(control_input[3:])
-            dT[:3, :3] = r.copy()
+            # # Compute the "delta" transformation matrix induced by the constant control input
+            # dT = np.eye(4)
+            # dT[:3, 3] = cntr_input[:3]
+            # dT[:3, :3] = self.rotation_matrix(cntr_input[3:])
 
-            # Apply the dT to the particles and append the result to the new particle list 
-            new_pose = np.dot(pose.pose(), dT)
-            new_particles.append(SE3(position=new_pose[:3,3].copy(), rotation=new_pose[:3,:3].copy()))
+            # # Apply the dT to the particles and append the result to the new particle list 
+            # new_pose = pose.pose()@dT
+
+            # new_particles.append(SE3(position=new_pose[:3,3].copy(), rotation=new_pose[:3,:3].copy()))
         
         self.particles = new_particles.copy()
     
@@ -110,17 +122,33 @@ class ParticleFilterSE3:
 
             # self.weights[i] *= multivariate_normal.pdf(error.ravel(), mean = np.zeros(4), cov = quat_cov)
             #### EXPERIMENTAL ####
-            R_cov = covariance[3,3]**2 + covariance[4,4]**2 + covariance[5,5]**2
-            t_cov = covariance[0,0]**2 + covariance[1,1]**2 + covariance[2,2]**2
-            cov_vect = np.vstack((R_cov,t_cov))
-            cov_mat=np.array([[cov_vect[0][0],0],[0,cov_vect[1][0]]])
 
-            pre_err = np.dot( np.transpose(particle.pose()[:3,:3]), measurement[:3,:3] ) - np.eye(3)
-            R_err = np.linalg.norm(pre_err,  ord='fro')
-            t_err = np.linalg.norm((particle.pose()[:3,3] - measurement[:3,3]), ord=2)
-            error_vect = np.vstack((R_err,t_err))
+            particle_vect= se3_to_twistcrd(scipy.linalg.logm(particle.pose()))
+            measurment_vect=se3_to_twistcrd(scipy.linalg.logm(measurement))
 
-            self.weights[i] = multivariate_normal.pdf(error_vect.ravel(), mean = np.zeros(2), cov = cov_mat)
+            self.weights[i] = multivariate_normal.pdf( measurment_vect.ravel(), mean = particle_vect.ravel(), cov = covariance)
+
+            # R_cov = covariance[3,3]**2 + covariance[4,4]**2 + covariance[5,5]**2
+            # t_cov = covariance[0,0]**2 + covariance[1,1]**2 + covariance[2,2]**2
+            # cov_vect = np.vstack((R_cov,t_cov))
+            # cov_mat=np.array([[cov_vect[0][0],0],[0,cov_vect[1][0]]])
+            # #cov_mat=np.eye(2)*0.5
+
+            # pre_err = np.dot( np.transpose(particle.pose()[:3,:3]), measurement[:3,:3] ) - np.eye(3)
+            # R_err = np.linalg.norm(pre_err,  ord='fro')
+            # t_err = np.linalg.norm((particle.pose()[:3,3] - measurement[:3,3]), ord=2)
+            # error_vect = np.vstack((R_err,t_err))
+
+            # self.weights[i] *= multivariate_normal.pdf(error_vect.ravel(), mean = np.zeros(2), cov = cov_mat)
+
+            # cov_val=np.sum(np.diag(covariance)**2)
+
+            # pre_err = np.dot( np.transpose(particle.pose()[:3,:3]), measurement[:3,:3] ) - np.eye(3)
+            # R_err = np.linalg.norm(pre_err,  ord='fro')
+            # t_err = np.linalg.norm((particle.pose()[:3,3] - measurement[:3,3]), ord=2)
+            # error_val = R_err + t_err
+            # norm_dist = scipy.stats.norm(loc=0, scale=cov_val)
+            # self.weights[i] *= norm_dist.pdf(error_val)
             #####################
 
         # Normalize the weights and compute the effective sample size
@@ -274,7 +302,7 @@ class ParticleFilterSE3:
 
         r = Rotation.from_matrix(R)
 
-        return r.as_rotvec()
+        return r.as_euler('zyx', degrees=False)
     
     @staticmethod
     def se3_to_twistcrd(twist):

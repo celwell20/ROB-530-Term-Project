@@ -10,6 +10,23 @@ def rot_vec(R):
 
         return r.as_rotvec()
 
+def rotation_matrix(rotation):
+    # Compute the rotation 
+    roll, pitch, yaw = rotation
+    cy = np.cos(yaw)
+    sy = np.sin(yaw)
+    cp = np.cos(pitch)
+    sp = np.sin(pitch)
+    cr = np.cos(roll)
+    sr = np.sin(roll)
+    rotation_matrix = np.array([
+        [cy*cp, cy*sp*sr - sy*cr, cy*sp*cr + sy*sr],
+        [sy*cp, sy*sp*sr + cy*cr, sy*sp*cr - cy*sr],
+        [-sp, cp*sr, cp*cr]
+    ])
+
+    return rotation_matrix
+
 def twist_to_se3(twist):
     """
     Convert a 6x1 twist coordinate to a 4x4 twist in the Lie algebra se(3).
@@ -64,6 +81,6 @@ def error_calc(state, truth):
     t_err = np.linalg.norm(t_err)
 
     # Stack the errors
-    error = np.vstack((R_err,t_err))
+    error = np.vstack((t_err,R_err))
     
     return error, R_err, t_err

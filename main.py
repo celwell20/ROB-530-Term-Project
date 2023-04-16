@@ -4,25 +4,8 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial.transform import Rotation
 
 import functions.Particle_Filter as Particle_Filter
-from functions.utils import twist_to_se3, se3toSE3, rot_vec
+from functions.utils import twist_to_se3, se3toSE3, rot_vec, rotation_matrix
 from functions.viz import plot_compute_errors, overlay_plots, plot_particles
-
-def rotation_matrix(rotation):
-    # Compute the rotation 
-    roll, pitch, yaw = rotation
-    cy = np.cos(yaw)
-    sy = np.sin(yaw)
-    cp = np.cos(pitch)
-    sp = np.sin(pitch)
-    cr = np.cos(roll)
-    sr = np.sin(roll)
-    rotation_matrix = np.array([
-        [cy*cp, cy*sp*sr - sy*cr, cy*sp*cr + sy*sr],
-        [sy*cp, sy*sp*sr + cy*cr, sy*sp*cr - cy*sr],
-        [-sp, cp*sr, cp*cr]
-    ])
-
-    return rotation_matrix
 
 def main(CNN_data, update_cov, init_pose, control=0, gndTruth_CNN=0):
     """Run the Particle Filter through a series of estimates, given the control inputs"""
@@ -36,15 +19,15 @@ def main(CNN_data, update_cov, init_pose, control=0, gndTruth_CNN=0):
     covariance = update_cov.copy()
 
     # Set the number of particles
-    num_particles = 200
+    num_particles = 10000
     
     # Create an initial SE3 pose from the provided init_pose, and initialise the particle filter with it
     initialiser = Particle_Filter.SE3(init_pose[:3,3], init_pose[:3,:3])
     pf = Particle_Filter.ParticleFilterSE3(num_particles, initialiser)
     
     # Loop through the data from the Convolutional Neural Network
-    for i in range(len(poses)):
-
+    for i in range(len(poses)): #10):#
+        print("Current Iteration: "+str(i))
         # Read the current control input and use it to perform the prediction step
         current_input =control[i]   # np.array([0.0 , 0.0 , 0.0 , 0.0, 0.0, 0.0])
         pf.predict(current_input)
@@ -52,8 +35,8 @@ def main(CNN_data, update_cov, init_pose, control=0, gndTruth_CNN=0):
         #print(gndTruth_CNN[i])
         particles=pf.return_particles()
         weigths=pf.return_weigths()
-        if i>0:
-            plot_particles(particles, gndTruth_CNN[i], fused_CNN[i], est_mean, weigths)
+        #if i>0:
+        #    plot_particles(particles, gndTruth_CNN[i], fused_CNN[i], est_mean, weigths)
 
         # Propagate the prediction with the particle filter
         n_eff = pf.update(poses[i], covariance)
@@ -114,10 +97,9 @@ if __name__ == '__main__':
 
     #     new_state_t=prev_state_t+control[i][:3]
     #     new_state_r=prev_state_r@rotation_matrix(control[i][3:])
-    #     new_state=np.row_stack((np.column_stack((new_state_r, new_state_t.T)),[0, 0, 0, 1]))
+    #     new_state=np.row_stack((np.column_stack((new_state_r, new_state_t)),[0, 0, 0, 1]))
     #     viz_data.append(new_state)
     ###############
-
 
     # Compute and plot the different errors
     mean_R, mean_t, var_R, var_t = plot_compute_errors(viz_data=viz_data,fused_CNN=fused_CNN,unfused_CNN=unfused_CNN,gndTruth_CNN=gndTruth_CNN)
