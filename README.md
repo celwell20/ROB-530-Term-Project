@@ -1,5 +1,3 @@
-#ChatGPT wrote this template, so it might have some errors!
-
 # SE(3) Particle Filter for Monocular Camera CNN Pose Estimates
 
 This is the readme file for a term project titled "SE(3) Particle Filter for Monocular Camera CNN Pose Estimates". The purpose of this project is to explore the application of a particle filter to improve the accuracy of CNN pose estimates for a monocular camera.
@@ -15,6 +13,17 @@ The particle filter is a Bayesian filtering technique that is commonly used for 
 
 ## Results
 We evaluate the performance of the SE(3) particle filter on a dataset of real-world images. We compare the accuracy of the particle filter to the accuracy of the CNN alone. Our results show that the particle filter significantly improves the accuracy of the pose estimates, particularly in situations where the CNN struggles.
+
+__Errors__
+
+![alt text](/pictures/Figure_2.png)
+![alt text](/pictures/Figure_3.png)
+
+__3D Visualization__
+
+![alt text](/pictures/Figure_1.png)
+![alt text](/pictures/Figure_1_Zoom.png)
+
 
 ## Conclusions
 In this project, we have demonstrated the potential of using a particle filter to improve the accuracy of CNN pose estimates for a monocular camera. Our results suggest that the particle filter can be a useful tool for pose estimation in real-world applications. Further research is needed to explore the performance of the particle filter in different settings and with different CNN architectures.
