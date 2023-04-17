@@ -2,6 +2,15 @@
 
 This is the readme file for a term project titled "SE(3) Particle Filter for Monocular Camera CNN Pose Estimates". The purpose of this project is to explore the application of a particle filter to improve the accuracy of CNN pose estimates for a monocular camera.
 
+## Running the code:
+To run our code, first ensure you have the following Python libraries installed:
+- ```Numpy```
+- ```Scipy```
+- ```transforms3D```
+- ```matplotlib```
+
+After installing the above Python libraries, simply download the contents of the repository and run ```main.py```.
+
 ## Introduction
 Pose estimation is an important task in computer vision and robotics. It involves determining the position and orientation of an object in a 3D space. One common method for pose estimation is using a monocular camera and a convolutional neural network (CNN). The one we use in this project is [produced by Dr. Maani Ghaffari's research lab](https://ieeexplore-ieee-org.proxy.lib.umich.edu/document/9672748). However, CNNs can have difficulty accurately estimating poses in certain situations, such as when objects are occluded or the camera is moving rapidly. To address these issues, we propose the use of a particle filter to improve the accuracy of the CNN pose estimates.
 
