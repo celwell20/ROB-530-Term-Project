@@ -61,7 +61,7 @@ ax.legend()
 # Set the title and labels for the plot
 plt.title('Rotation Error')
 plt.xlabel('Trajectory Time-Step')
-plt.ylabel('Chordal  Error')
+plt.ylabel('Chordal  Distance')
 
 # Show the plot
 plt.show()
@@ -81,7 +81,7 @@ ax.legend()
 # Set the title and labels for the plot
 plt.title('Translation Error')
 plt.xlabel('Trajectory Time-Step')
-plt.ylabel('Chordal  Error')
+plt.ylabel('Euclidian  Distance')
 
 # Show the plot
 plt.show()
@@ -92,3 +92,31 @@ viz_data=np.load(file='PF_Data_1.npy')
 states_list=[gndTruth_CNN, unfused_CNN, fused_CNN, viz_data]
 label_list=["Ground Truth", "Unfused Estimate", "Fused Estimate", "Particle Filter"]
 overlay_plots(states_list, label_list)
+
+#####
+
+mean_R = np.mean(all_R_error,axis=1)
+mean_t = np.mean(all_t_error,axis=1)
+var_R = np.mean(all_R_error ** 2,axis=1)
+var_t = np.mean(all_t_error **2,axis=1)
+
+# Report the errors in the terminal
+print("Mean of error(Rotation)")
+print("Particle filter: ", mean_R[1])
+print("Original Fused Estimate: ",mean_R[2])
+print("Original Unfused Unfused: ",mean_R[3])
+
+print("Variance of error(Roatation)")
+print("Particle filter: ", var_R[1])
+print("Original Fused Estimate: ",var_R[2])
+print("Original Unfused Unfused: ",var_R[3])
+
+print("Mean of error(tanslation)")
+print("Particle filter: ", mean_t[1])
+print("Original Fused Estimate: ",mean_t[2])
+print("Original Unfused Unfused: ",mean_t[3])
+
+print("Variance of error(tanslation)")
+print("Particle filter: ", var_t[1])
+print("Original Fused Estimate: ",var_t[2])
+print("Original Unfused Unfused: ",var_t[3])
