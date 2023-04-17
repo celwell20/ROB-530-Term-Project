@@ -11,15 +11,19 @@ The CNN used in this project is a standard architecture for pose estimation. It 
 ## Particle Filter
 The particle filter is a Bayesian filtering technique that is commonly used for state estimation in robotics. In this project, we use an SE(3) particle filter to estimate the pose of the object. The particle filter uses a set of particles to represent the distribution of the object's pose. The particles are updated based on the CNN pose estimate, which receives images from the monocular camera.
 
+__Particle Filter Diagram:__
+
+![alt text](/pictures/pf_diagram.PNG)
+
 ## Results
 We evaluate the performance of the SE(3) particle filter on a dataset of real-world images. We compare the accuracy of the particle filter to the accuracy of the CNN alone. Our results show that the particle filter significantly improves the accuracy of the pose estimates, particularly in situations where the CNN struggles.
 
-__Errors__
+__Errors:__
 
 ![alt text](/pictures/Figure_2.png)
 ![alt text](/pictures/Figure_3.png)
 
-__3D Visualization__
+__3D Visualization:__
 
 ![alt text](/pictures/Figure_1.png)
 ![alt text](/pictures/Figure_1_Zoom.png)
