@@ -44,3 +44,6 @@ In this project, we have demonstrated the potential of using a particle filter t
 ## References
 
 [1] J. Song, M. Patel, M. Ghaffari. “Fusing Convolutional Neural Network and Geometric Constraint for Image-Based Indoor Localization” in *IEEE Robotics and Automation Letters*, vol. 7, no. 2, pp. 1674-1681, April 2022, doi: 10.1109/LRA.2022.3140832.
+
+## Authors:
+Clayton Elwell, Yi Shen, Jiangbo Yu, Federico Seghizzi, Lucas Lymburner
