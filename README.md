@@ -12,20 +12,20 @@ To run our code, first ensure you have the following Python libraries installed 
 After installing the above Python libraries, simply download the contents of the repository and run ```main.py```.
 
 ## Introduction
-Pose estimation is an important task in computer vision and robotics. It involves determining the position and orientation of an object in a 3D space. One common method for pose estimation is using a monocular camera and a convolutional neural network (CNN). The one we use in this project is [produced by Dr. Maani Ghaffari's research lab](https://ieeexplore-ieee-org.proxy.lib.umich.edu/document/9672748) [1]. However, CNNs can have difficulty accurately estimating poses in certain situations, such as when objects are occluded or the camera is moving rapidly. To address these issues, we propose the use of a particle filter to improve the accuracy of the CNN pose estimates.
+Pose estimation is an important task in computer vision and robotics. It involves determining the position and orientation of an object in a 3D space. One common method for pose estimation involves using a monocular camera and a convolutional neural network (CNN). The one selected for this project is [produced by Dr. Maani Ghaffari's research lab](https://ieeexplore-ieee-org.proxy.lib.umich.edu/document/9672748) [1]. To further improve this pose estimate, we propose introducing a particle filter which will propagate a uniform distribution of SE(3) particles through the same motion model used by the CNN, whilst updating their weights based on the CNN-based estimation.
 
 ## CNN
-The CNN used in this project is a standard architecture for pose estimation. It takes an input image and produces a homogeneous transformation matrix representing the position and orientation of the object in 3D space. We train the CNN on a dataset of synthetic images with known ground truth poses.
+The CNN used as a starting point for this project presents a standard architecture for pose estimation. It takes an input image and produces a homogeneous transformation matrix representing the position and orientation of the object in 3D space. For this project, we assume these pose estimates are stored, alongside the ground truth data, in .npy lists of 4x4 arrays saved in the "data" subfolder.
 
 ## Particle Filter
-The particle filter is a Bayesian filtering technique that is commonly used for state estimation in robotics. In this project, we use an SE(3) particle filter to estimate the pose of the object. The particle filter uses a set of particles to represent the distribution of the object's pose. The particles are updated based on the CNN pose estimate, which receives images from the monocular camera.
+Particle filters are a Bayesian filtering technique that is commonly used for state estimation in robotics. In this project, the particle filter uses a set of SE(3) poses as particles to represent the distribution of the object's pose. The motion model is the same constant-velocity motion model employed in [1], whilst the measurment model is represented by the CNN-based localization algoirthm.
 
 __Particle Filter Diagram:__
 
 ![alt text](/pictures/pf_diagram.PNG)
 
 ## Results
-We evaluate the performance of the SE(3) particle filter on a dataset of real-world images. We compare the accuracy of the particle filter to the accuracy of the CNN alone. Our results show that the particle filter significantly improves the accuracy of the pose estimates, particularly in situations where the CNN struggles.
+We evaluate the performance of the SE(3) particle filter on a single dataset of real-world images. We compare the accuracy of the particle filter to the accuracy of the CNN-based estimates.
 
 __Errors:__
 
@@ -39,7 +39,7 @@ __3D Visualization:__
 
 
 ## Conclusions
-In this project, we have demonstrated the potential of using a particle filter to improve the accuracy of CNN pose estimates for a monocular camera. Our results suggest that the particle filter can be a useful tool for pose estimation in real-world applications. Further research is needed to explore the performance of the particle filter in different settings and with different CNN architectures.
+In this project, we have demonstrated the potential of using a particle filter to improve the accuracy of CNN-based pose estimates for a monocular camera. Our results suggest that the particle filter is particularly good at estimating the translational components of the pose, whilst its rotational counterparts are not always as accurate. Further research is needed to explore the performance of the particle filter in different settings and with different CNN architectures.
 
 ## References
 
