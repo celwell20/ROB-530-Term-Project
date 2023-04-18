@@ -21,7 +21,7 @@ def plot_errors(multi_errors, title):
 
     # Set the title and labels for the plot
     plt.title(title)
-    plt.xlabel('Index')
+    plt.xlabel('Index (#)')
     plt.ylabel('Error')
 
     # Show the plot
@@ -79,9 +79,9 @@ def overlay_plots(states_list, label_list):
 
     # Add Labels
     ax.legend()
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    ax.set_xlabel('X (m))')
+    ax.set_ylabel('Y (m)')
+    ax.set_zlabel('Z (m)')
     plt.show()    
 
 def plot_particle_weights(particle_weights):
@@ -108,7 +108,7 @@ def plot_particles(particles, ground_truth, data, mean, weight):
     for ind, particle in enumerate(particles):
         ax.scatter(particle[0, 3], particle[1, 3], particle[2, 3], c='r', s=weight[ind]*100, label="Particles")
 
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    ax.set_xlabel('X (m)')
+    ax.set_ylabel('Y (m)')
+    ax.set_zlabel('Z (m)')
     plt.show()

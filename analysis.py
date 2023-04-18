@@ -56,8 +56,8 @@ ax.legend()
 
 # Set the title and labels for the plot
 plt.title('Rotation Error')
-plt.xlabel('Trajectory Time-Step')
-plt.ylabel('Chordal  Distance')
+plt.xlabel('Trajectory Time-Step (#)')
+plt.ylabel('Chordal  Distance (°)')
 
 # Show the plot
 plt.show()
@@ -74,8 +74,8 @@ ax.legend()
 
 # Set the title and labels for the plot
 plt.title('Translation Error')
-plt.xlabel('Trajectory Time-Step')
-plt.ylabel('Euclidian  Distance')
+plt.xlabel('Trajectory Time-Step (#)')
+plt.ylabel('Euclidian  Distance (m)')
 
 # Show the plot
 plt.show()
