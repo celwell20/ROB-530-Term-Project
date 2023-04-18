@@ -29,13 +29,13 @@ We evaluate the performance of the SE(3) particle filter on a single dataset of 
 
 __Errors:__
 
-![alt text](/pictures/Figure_2.png)
-![alt text](/pictures/Figure_3.png)
+![alt text](/pictures/RotationalError.png)
+![alt text](/pictures/TranslationalError.png)
 
 __3D Visualization:__
 
-![alt text](/pictures/Figure_1.png)
-![alt text](/pictures/Figure_1_Zoom.png)
+![alt text](/pictures/3DViz.png)
+![alt text](/pictures/3DViz_Zoom.png)
 
 
 ## Conclusions
