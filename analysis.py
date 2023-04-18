@@ -4,7 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial.transform import Rotation
 
 from functions.utils import error_calc
-from functions.viz import plot_errors, overlay_plots, plot_particles, plot_compute_errors
+from functions.viz import overlay_plots
 
 # Load the Convolutional Neural Network data
 gndTruth_CNN = np.load(file='data/trajectory_gt_default.npy')
