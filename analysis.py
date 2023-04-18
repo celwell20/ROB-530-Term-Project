@@ -19,8 +19,7 @@ all_PF_t_error = np.zeros((10,len(gndTruth_CNN)))
 
 # Load the Particle Filter results
 for i in range(1, 11):
-    curr_data=np.load(file='PF_Data_'+str(i)+'.npy')
-    #mean_R, mean_t, var_R, var_t = plot_compute_errors(viz_data=curr_data,fused_CNN=fused_CNN,unfused_CNN=unfused_CNN,gndTruth_CNN=gndTruth_CNN)
+    curr_data=np.load(file='numpy_results/PF_Data_'+str(i)+'.npy')
 
     for j in range(len(gndTruth_CNN)):
     
@@ -30,10 +29,10 @@ for i in range(1, 11):
 
 all_R_error[0,:]=np.min(all_PF_R_error, axis=0)
 all_R_error[1,:]=np.max(all_PF_R_error, axis=0)
-print(all_PF_R_error)
+
 all_t_error[0,:]=np.min(all_PF_t_error, axis=0)
 all_t_error[1,:]=np.max(all_PF_t_error, axis=0)
-#print(all_PF_t_error)
+
 for i in range(len(gndTruth_CNN)):
 
     [_, fused_R_err, fused_t_err] = error_calc(fused_CNN[i],gndTruth_CNN[i])
@@ -43,10 +42,7 @@ for i in range(len(gndTruth_CNN)):
     all_R_error[3,i] = unfuse_R_err
     all_t_error[3,i] = unfuse_t_err
 
-#####
-
 indices = range(len(all_R_error[0,:]))
-print(indices)
 
 # Create a plot with the indices on the x-axis and the errors on the y-axis
 plt.figure()
@@ -66,8 +62,6 @@ plt.ylabel('Chordal  Distance')
 # Show the plot
 plt.show()
 
-######
-
 # Create a plot with the indices on the x-axis and the errors on the y-axis
 plt.figure()
 ax = plt.axes()
@@ -86,15 +80,6 @@ plt.ylabel('Euclidian  Distance')
 # Show the plot
 plt.show()
 
-
-viz_data=np.load(file='PF_Data_1.npy')
-
-states_list=[gndTruth_CNN, unfused_CNN, fused_CNN, viz_data]
-label_list=["Ground Truth", "Unfused Estimate", "Fused Estimate", "Particle Filter"]
-overlay_plots(states_list, label_list)
-
-#####
-
 mean_R = np.mean(all_R_error,axis=1)
 mean_t = np.mean(all_t_error,axis=1)
 var_R = np.mean(all_R_error ** 2,axis=1)
@@ -102,21 +87,33 @@ var_t = np.mean(all_t_error **2,axis=1)
 
 # Report the errors in the terminal
 print("Mean of error(Rotation)")
-print("Particle filter: ", mean_R[1])
+print("Particle filter Lower Bound: ", mean_R[0])
+print("Particle filter Upper Bound: ", mean_R[1])
 print("Original Fused Estimate: ",mean_R[2])
 print("Original Unfused Unfused: ",mean_R[3])
 
 print("Variance of error(Roatation)")
-print("Particle filter: ", var_R[1])
+print("Particle filter Lower Bound: ", var_R[0])
+print("Particle filter Upper Bound: ", var_R[1])
 print("Original Fused Estimate: ",var_R[2])
 print("Original Unfused Unfused: ",var_R[3])
 
 print("Mean of error(tanslation)")
-print("Particle filter: ", mean_t[1])
+print("Particle filter Lower Bound: ", mean_t[0])
+print("Particle filter Upper Bound: ", mean_t[1])
 print("Original Fused Estimate: ",mean_t[2])
 print("Original Unfused Unfused: ",mean_t[3])
 
 print("Variance of error(tanslation)")
-print("Particle filter: ", var_t[1])
+print("Particle filter Lower Bound: ", var_t[0])
+print("Particle filter Upper Bound: ", var_t[1])
 print("Original Fused Estimate: ",var_t[2])
 print("Original Unfused Unfused: ",var_t[3])
+
+###########################################################
+
+viz_data=np.load(file='numpy_results/PF_Data_2.npy')
+
+states_list=[gndTruth_CNN, unfused_CNN, fused_CNN, viz_data]
+label_list=["Ground Truth", "Unfused Estimate", "Fused Estimate", "Particle Filter"]
+overlay_plots(states_list, label_list)

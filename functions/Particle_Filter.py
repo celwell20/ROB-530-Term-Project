@@ -3,7 +3,8 @@ import scipy
 from scipy.stats import multivariate_normal
 from scipy.spatial.transform import Rotation
 from transforms3d.quaternions import mat2quat, qmult, qinverse
-from functions.utils import se3_to_twistcrd, rotation_matrix
+from functions.utils import se3_to_twistcrd, rotation_matrix, wedge
+from scipy.linalg import logm, expm
 
 class SE3:
     def __init__(self, position=np.zeros(3), rotation=np.eye(3)):
@@ -17,17 +18,6 @@ class SE3:
         pose = np.row_stack((np.column_stack((self.rotation, self.position.T)),[0, 0, 0, 1]))
 
         return pose
-    
-    def se3_to_twistcrd(self):
-        # Transform se(3) to twist coordinates (6x1)
-
-        twist = self.pose()
-        omega = np.array([[twist[2,1]],[twist[0,2]],[twist[1,0]]])
-        vel = np.array([[twist[0,3]],[twist[1,3]],[twist[2,3]]])
-        twistcrd = np.vstack((vel,omega))
-
-        return twistcrd
-
     
 class ParticleFilterSE3:
     def __init__(self, num_particles, initial_pose):
@@ -53,23 +43,6 @@ class ParticleFilterSE3:
             # Apply the transformation
             init_particles.append(SE3(position=new_pos, rotation=new_rot))
 
-            # # Compute the "delta" transformation matrix induced by the constant control input
-            # dT = np.eye(4)
-            # dT[:3, 3] = control_input[:3]
-            # r = self.rotation_matrix(control_input[3:])
-            # dT[:3, :3] = r.copy()
-
-            # # Apply the dT to the particles and append the result to the new particle list 
-            # new_pose = np.dot(initPose.pose(), dT)
-            # init_particles.append(SE3(position=new_pose[:3,3].copy(), rotation=new_pose[:3,:3].copy()))
-
-        # TESTING #
-        # for _ in range(5):
-        #     pos=np.array([1.3064, 0.1642, 1.7122])
-        #     rot=np.array([[0.41846362,0.60511527,-0.67729145],[0.9080965,-0.26580651,0.32358561],[0.01577811,-0.7504548,-0.66073341]])
-        #     init_particles.append(SE3(position=pos, rotation=rot))
-
-        ###########
         return init_particles
 
     def invSE3(self, pose):
@@ -99,16 +72,6 @@ class ParticleFilterSE3:
             
             # Apply the transformation
             new_particles.append(SE3(position=new_pos, rotation=new_rot))
-
-            # # Compute the "delta" transformation matrix induced by the constant control input
-            # dT = np.eye(4)
-            # dT[:3, 3] = cntr_input[:3]
-            # dT[:3, :3] = self.rotation_matrix(cntr_input[3:])
-
-            # # Apply the dT to the particles and append the result to the new particle list 
-            # new_pose = pose.pose()@dT
-
-            # new_particles.append(SE3(position=new_pose[:3,3].copy(), rotation=new_pose[:3,:3].copy()))
         
         self.particles = new_particles.copy()
     
@@ -116,48 +79,11 @@ class ParticleFilterSE3:
         # Loop through all the particles and compute their weigths based on their vicinity to the measurment
         for i in range(self.num_particles):
             particle = self.particles[i]
-            # Compute the logarithmic map of the dot product between particle's pose and the inverse of the measurement pose from CNN
-            # Where the log map produces a twist in se(3) which is subsequently converted to 6x1 twist coordinates
-            # pre_err = np.dot( np.transpose(particle.pose()[:3,:3]), measurement[:3,:3] ) - np.eye(3)
-            # R_err = np.linalg.norm(pre_err,  ord='fro')
-            # t_err = particle.pose()[:3,3] - measurement[:3,3]
-            # error = np.vstack((R_err,t_err.reshape(3,1)))
-
-            # R_cov = covariance[3,3]**2 + covariance[4,4]**2 + covariance[5,5]**2
-            # t_cov = np.diag(covariance[:3,:3])
-            # quat_cov_vec = np.vstack((R_cov,t_cov.reshape(3,1)))
-            # quat_cov = np.diag( quat_cov_vec.reshape(4,) )
-
-            # self.weights[i] *= multivariate_normal.pdf(error.ravel(), mean = np.zeros(4), cov = quat_cov)
-            #### EXPERIMENTAL ####
 
             particle_vect= se3_to_twistcrd(scipy.linalg.logm(particle.pose()))
             measurment_vect=se3_to_twistcrd(scipy.linalg.logm(measurement))
 
             self.weights[i] *= multivariate_normal.pdf( measurment_vect.ravel(), mean = particle_vect.ravel(), cov = covariance)
-
-            # R_cov = covariance[3,3]**2 + covariance[4,4]**2 + covariance[5,5]**2
-            # t_cov = covariance[0,0]**2 + covariance[1,1]**2 + covariance[2,2]**2
-            # cov_vect = np.vstack((R_cov,t_cov))
-            # cov_mat=np.array([[cov_vect[0][0],0],[0,cov_vect[1][0]]])
-            # #cov_mat=np.eye(2)*0.5
-
-            # pre_err = np.dot( np.transpose(particle.pose()[:3,:3]), measurement[:3,:3] ) - np.eye(3)
-            # R_err = np.linalg.norm(pre_err,  ord='fro')
-            # t_err = np.linalg.norm((particle.pose()[:3,3] - measurement[:3,3]), ord=2)
-            # error_vect = np.vstack((R_err,t_err))
-
-            # self.weights[i] *= multivariate_normal.pdf(error_vect.ravel(), mean = np.zeros(2), cov = cov_mat)
-
-            # cov_val=np.sum(np.diag(covariance)**2)
-
-            # pre_err = np.dot( np.transpose(particle.pose()[:3,:3]), measurement[:3,:3] ) - np.eye(3)
-            # R_err = np.linalg.norm(pre_err,  ord='fro')
-            # t_err = np.linalg.norm((particle.pose()[:3,3] - measurement[:3,3]), ord=2)
-            # error_val = R_err + t_err
-            # norm_dist = scipy.stats.norm(loc=0, scale=cov_val)
-            # self.weights[i] *= norm_dist.pdf(error_val)
-            #####################
 
         # Normalize the weights and compute the effective sample size
         self.weights /= np.sum(self.weights)
@@ -178,9 +104,11 @@ class ParticleFilterSE3:
             u = r + j/self.num_particles
             while u > W[count]:
                 count += 1
+
             # check to make sure there is not a referencing issue here
             new_particles.append(self.particles[count])
             new_weights[j] = 1 / self.num_particles
+
         self.particles = new_particles.copy()
         self.weights = new_weights.copy()
 
@@ -195,10 +123,13 @@ class ParticleFilterSE3:
         for i in range(self.num_particles):
             # Generate a random number between 0 and 1
             random_num = np.random.uniform(0, 1)
+
             # Find the index of the particle whose cumulative weight is closest to the random number
             index = np.argmin(np.abs(cum_sum_weights - random_num))
+
             # Add the selected particle to the new set of particles
             new_particles.append(self.particles[index])
+
             # Increment the weight of the selected particle
             new_weights[index] += 1
 
@@ -227,6 +158,7 @@ class ParticleFilterSE3:
 
         # calculate the mean of all the 6x1 twist coordiantes
         X = np.mean(twists, axis=1)
+
         #initiating values
         sinSum3 = 0
         cosSum3 = 0
@@ -238,7 +170,6 @@ class ParticleFilterSE3:
         for s in range(self.num_particles):
             # could alternatively index from the twists array
             twist = twists[:,s].copy()
-            #twist = self.se3_to_twistcrd(scipy.linalg.logm(self.particles[s].pose()))
 
             # idk what this stuff does but maani does it
             cosSum3 += np.cos(twist[3])
@@ -269,33 +200,31 @@ class ParticleFilterSE3:
         state_mean = X.copy()
 
         return state_mean, state_cov
-        
-    def new_mean_variance(self):
-        # Convert list of 4x4 poses to a list of 6D vectors
-        vec_list = []
-        for pose in self.particles:
-            pose=pose.pose()
-            vec = np.zeros(6)
-            vec[0:3] = pose[0:3,3]
-            vec[3:] = np.array([pose[2,1], pose[0,2], pose[1,0]])
-            vec_list.append(vec)
 
-        # Calculate weighted mean and covariance of 6D vectors
-        weighted_mean_vec = np.average(vec_list, axis=0, weights=self.weights)
-        centered_vec_list = vec_list - weighted_mean_vec
-        weighted_cov_mat = np.cov(np.transpose(centered_vec_list), aweights=self.weights)
-
-        # Convert weighted mean and covariance back to SE(3) poses
-        weighted_mean_pose = np.eye(4)
-        weighted_mean_pose[0:3,3] = weighted_mean_vec[0:3]
-        weighted_mean_pose[0,1] = -weighted_mean_vec[5]
-        weighted_mean_pose[0,2] = weighted_mean_vec[4]
-        weighted_mean_pose[1,0] = weighted_mean_vec[5]
-        weighted_mean_pose[1,2] = -weighted_mean_vec[3]
-        weighted_mean_pose[2,0] = -weighted_mean_vec[4]
-        weighted_mean_pose[2,1] = weighted_mean_vec[3]
-
-        return weighted_mean_pose, weighted_cov_mat
+    def Lie_sample_statistics(self):
+        # compute sample mean and covariance on matrix Lie group
+        mu0 = self.particles[0].pose()  # pick a sample as initial guess
+        v = self.return_particles()
+        max_iter = 1000
+        iter = 1
+        while iter < max_iter:
+            mu = np.zeros_like(mu0)
+            Sigma = np.zeros((6, 6))
+            for i in range(self.num_particles):
+                # left-invariant error: eta^L = X^-1 * X^hat
+                v[i] = logm(np.linalg.inv(mu0) @ self.particles[i].pose())
+                mu += v[i]
+                vec_v = wedge(v[i])
+                Sigma += vec_v @ vec_v.T
+            mu = mu0 @ expm(mu / self.num_particles)
+            Sigma = (1 / (self.num_particles - 1)) * Sigma   # unbiased sample covariance
+            # check if we're done here!
+            if np.linalg.norm(logm(np.linalg.inv(mu0) @ mu), 'fro') < 1e-8:
+                return mu, Sigma
+            else:
+                mu0 = mu.copy()
+            iter += 1
+        return mu, Sigma
 
     def return_particles(self):
         """Debugging Tool"""
@@ -312,60 +241,9 @@ class ParticleFilterSE3:
         return weight_list
     
     @staticmethod
-    def rotation_matrix(rotation):
-        # Compute the rotation 
-        roll, pitch, yaw = rotation
-        cy = np.cos(yaw)
-        sy = np.sin(yaw)
-        cp = np.cos(pitch)
-        sp = np.sin(pitch)
-        cr = np.cos(roll)
-        sr = np.sin(roll)
-        rotation_matrix = np.array([
-            [cy*cp, cy*sp*sr - sy*cr, cy*sp*cr + sy*sr],
-            [sy*cp, sy*sp*sr + cy*cr, sy*sp*cr - cy*sr],
-            [-sp, cp*sr, cp*cr]
-        ])
-
-        return rotation_matrix
-    
-    @staticmethod
-    def rot_vec(R):
-        # get the 3x1 rotation vector from the 3x3 rotation matrix
-
-        r = Rotation.from_matrix(R)
-
-        return r.as_euler('zyx', degrees=False)
-    
-    @staticmethod
-    def se3_to_twistcrd(twist):
-        # Convert from a member of little se(3) to a
-        # 6x1 twist coordinate [v;w]
-
-        omega = np.array([[twist[2,1]],[twist[0,2]],[twist[1,0]]])
-        vel = np.array([[twist[0,3]],[twist[1,3]],[twist[2,3]]])
-        twistcrd = np.vstack((vel,omega))
-
-        return twistcrd
-    
-    @staticmethod
     def wrapToPi(angle):
         # Correct an angle for overflow beyond pi radians
 
         wrapped_angle = np.mod(angle + np.pi, 2*np.pi) - np.pi
 
         return wrapped_angle
-    
-    @staticmethod
-    def sort_objects(objects, values):
-    # Sort a list of objects by the corresponding values in another list.
-
-    # :param objects: the list of objects to be sorted
-    # :param values: the list of values to sort by
-    # :return: a new list of objects sorted by the corresponding values
-    # """
-        sorted_indices = sorted(range(len(values)), key=lambda i: values[i])
-    
-        sorted_objects = [objects[i] for i in sorted_indices]
-        sorted_weights = np.array([values[i] for i in sorted_indices])
-        return sorted_objects, sorted_weights

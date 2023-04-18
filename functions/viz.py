@@ -63,8 +63,21 @@ def overlay_plots(states_list, label_list):
         lbl=label_list[indx]
         position=np.array([s[:3, 3] for s in sts])
         ax.scatter(position[:, 0], position[:, 1], position[:, 2], s=1, label=lbl)
-        ax.plot(position[:, 0], position[:, 1], position[:, 2], alpha=0.2)#,linewidth=1.5)
+        ax.plot(position[:, 0], position[:, 1], position[:, 2], alpha=1) #
 
+        # Add x-y-z axis to show orientation
+        crdFrame_idx = 0
+        for p in sts:
+            if crdFrame_idx % 5 == 0:    
+                x, y, z = p[:3, 3]    
+                R = p[:3, :3]    
+                scale = 0.05   
+                ax.plot([x, x + scale * R[0, 0]], [y, y + scale * R[1, 0]], [z, z + scale * R[2, 0]], c='grey', alpha=0.5)    
+                ax.plot([x, x + scale * R[0, 1]], [y, y + scale * R[1, 1]], [z, z + scale * R[2, 1]], c='magenta', alpha=0.5)    
+                ax.plot([x, x + scale * R[0, 2]], [y, y + scale * R[1, 2]], [z, z + scale * R[2, 2]], c='blue', alpha=0.5)            
+            crdFrame_idx += 1
+
+    # Add Labels
     ax.legend()
     ax.set_xlabel('X')
     ax.set_ylabel('Y')

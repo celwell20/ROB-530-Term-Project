@@ -28,16 +28,7 @@ def rotation_matrix(rotation):
     return rotation_matrix
 
 def twist_to_se3(twist):
-    """
-    Convert a 6x1 twist coordinate to a 4x4 twist in the Lie algebra se(3).
-    
-    Parameters:
-    - twist: a numpy array of shape (6, 1) representing the twist coordinate
-    
-    Returns:
-    - twist_se3: a numpy array of shape (4, 4) representing the twist in the Lie algebra se(3)
-    """
-    
+   
     # Extract the translational and rotational components of the twist
     v = twist[:3]
     w = twist[3:]
@@ -84,3 +75,7 @@ def error_calc(state, truth):
     error = np.vstack((t_err,R_err))
     
     return error, R_err, t_err
+
+def wedge(v):
+    # converts 4x4 matrix to 6-vector
+    return np.array([v[2, 1], v[0, 2], v[1, 0], v[0, 3], v[1, 3], v[2, 3]])
