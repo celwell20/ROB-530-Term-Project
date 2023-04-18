@@ -9,7 +9,7 @@ To run our code, first ensure you have the following Python libraries installed 
 - ```transforms3D```
 - ```matplotlib```
 
-After installing the above Python libraries, simply download the contents of the repository and run ```main.py```.
+After installing the above Python libraries, simply download the contents of the repository and run ```main.py```. To analyse the data and recreate the graphs presented in report, run ```analysis.py``` instead.
 
 ## Introduction
 Pose estimation is an important task in computer vision and robotics. It involves determining the position and orientation of an object in a 3D space. One common method for pose estimation involves using a monocular camera and a convolutional neural network (CNN). The one selected for this project is [produced by Dr. Maani Ghaffari's research lab](https://ieeexplore-ieee-org.proxy.lib.umich.edu/document/9672748) [1]. To further improve this pose estimate, we propose introducing a particle filter which will propagate a uniform distribution of SE(3) particles through the same motion model used by the CNN, whilst updating their weights based on the CNN-based estimation.
