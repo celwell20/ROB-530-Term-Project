@@ -45,13 +45,6 @@ class ParticleFilterSE3:
 
         return init_particles
 
-    def invSE3(self, pose):
-        # Closed form inverse solution for a pose in SE(3)
-        R = pose[:3,:3]
-        p = pose[:3,3]
-        inv = np.row_stack((np.column_stack( ( np.transpose(R), np.dot(-np.transpose(R),p) ) ),[0, 0, 0, 1]))
-        return inv
-
     def predict(self, control_input):
         """Use the known control input to propagate the particles forward"""
 
@@ -111,34 +104,6 @@ class ParticleFilterSE3:
 
         self.particles = new_particles.copy()
         self.weights = new_weights.copy()
-
-    def new_resample(self):
-        new_particles = []
-        new_weights = np.zeros(self.num_particles)
-
-        # Compute the cumulative sum of weights
-        cum_sum_weights = np.cumsum(self.weights)
-
-        # Resample particles
-        for i in range(self.num_particles):
-            # Generate a random number between 0 and 1
-            random_num = np.random.uniform(0, 1)
-
-            # Find the index of the particle whose cumulative weight is closest to the random number
-            index = np.argmin(np.abs(cum_sum_weights - random_num))
-
-            # Add the selected particle to the new set of particles
-            new_particles.append(self.particles[index])
-
-            # Increment the weight of the selected particle
-            new_weights[index] += 1
-
-        # Normalize the weights
-        new_weights /= self.num_particles
-
-        self.particles = new_particles.copy()
-        self.weights = new_weights.copy()
-
 
     def mean_variance(self):
 
